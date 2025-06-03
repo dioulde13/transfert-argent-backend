@@ -201,299 +201,305 @@ const ajouterPayement = async (req, res) => {
       }
 
 
-      if (prix === 0) {
-        if (Number(utilisateur.solde) >= Number(montant)) {
-          const montantEnCoursPayement = Number(montant) + Number(sortie.montant_payer);
-          if (montantEnCoursPayement > Number(sortie.montant_gnf)) {
-            const montantGnf = Number(sortie.montant_gnf);
-            const montantRestant = Number(sortie.montant_restant);
-            res.status(400).json({
-              message: `Le montant payé ${montant.toLocaleString("fr-FR", {
-                minimumFractionDigits: 0,
-                maximumFractionDigits: 0,
-              })} GNF, est supérieur au montant restant qui est: ${Number(sortie.montant_payer) === 0
-                ?
-                montantGnf.toLocaleString("fr-FR", {
+      if (sortie.payement_type === "VALIDÉE") {
+        if (prix === 0) {
+          if (Number(utilisateur.solde) >= Number(montant)) {
+            const montantEnCoursPayement = Number(montant) + Number(sortie.montant_payer);
+            if (montantEnCoursPayement > Number(sortie.montant_gnf)) {
+              const montantGnf = Number(sortie.montant_gnf);
+              const montantRestant = Number(sortie.montant_restant);
+              res.status(400).json({
+                message: `Le montant payé ${montant.toLocaleString("fr-FR", {
                   minimumFractionDigits: 0,
                   maximumFractionDigits: 0,
-                })
-                :
-                montantRestant.toLocaleString("fr-FR", {
-                  minimumFractionDigits: 0,
-                  maximumFractionDigits: 0,
-                })
-                } GNF`,
-            });
-          } else {
-            sortie.montant_payer = Number(sortie.montant_payer ?? 0) + Number(montant);
-            sortie.montant_restant =
-              Number(sortie.montant_gnf ?? 0) - Number(sortie.montant_payer);
+                })} GNF, est supérieur au montant restant qui est: ${Number(sortie.montant_payer) === 0
+                  ?
+                  montantGnf.toLocaleString("fr-FR", {
+                    minimumFractionDigits: 0,
+                    maximumFractionDigits: 0,
+                  })
+                  :
+                  montantRestant.toLocaleString("fr-FR", {
+                    minimumFractionDigits: 0,
+                    maximumFractionDigits: 0,
+                  })
+                  } GNF`,
+              });
+            } else {
+              sortie.montant_payer = Number(sortie.montant_payer ?? 0) + Number(montant);
+              sortie.montant_restant =
+                Number(sortie.montant_gnf ?? 0) - Number(sortie.montant_payer);
 
-            // Ajouter une entrée dans la table Payement
-            const payement = await Payement.create({
-              utilisateurId,
-              sortieId: sortie.id, // Inclure entreId
-              code: code, // Inclure entreId
-              montant,
-              type,
-            });
+              // Ajouter une entrée dans la table Payement
+              const payement = await Payement.create({
+                utilisateurId,
+                sortieId: sortie.id, // Inclure entreId
+                code: code, // Inclure entreId
+                montant,
+                type,
+              });
 
-            // Mettre à jour le solde de l'utilisateur connecté
-            utilisateur.solde = Number(utilisateur.solde || 0) - Number(montant);
-            await utilisateur.save();
+              // Mettre à jour le solde de l'utilisateur connecté
+              utilisateur.solde = Number(utilisateur.solde || 0) - Number(montant);
+              await utilisateur.save();
 
-            if (Number(sortie.montant_restant) === 0) {
-              sortie.status = "PAYEE";
-            } else if (Number(sortie.montant_payer) < Number(sortie.montant_gnf)) {
-              sortie.status = "EN COURS";
+              if (Number(sortie.montant_restant) === 0) {
+                sortie.status = "PAYEE";
+              } else if (Number(sortie.montant_payer) < Number(sortie.montant_gnf)) {
+                sortie.status = "EN COURS";
+              }
+
+              await sortie.save();
+              res.status(201).json({
+                message: "Payement ajouté avec succès.",
+                payement,
+              });
             }
-
-            await sortie.save();
-            res.status(201).json({
-              message: "Payement ajouté avec succès.",
-              payement,
+          } else {
+            const solde = Number(utilisateur.solde);
+            // console.log(solde);
+            res.status(400).json({
+              message: `On ne peut pas faire un payement de ${montant.toLocaleString(
+                "fr-FR",
+                { minimumFractionDigits: 0, maximumFractionDigits: 0 }
+              )} GNF, le solde dans la caisse est: ${solde.toLocaleString(
+                "fr-FR",
+                {
+                  minimumFractionDigits: 0,
+                  maximumFractionDigits: 0,
+                }
+              )} GNF`,
             });
           }
-        } else {
-          const solde = Number(utilisateur.solde);
-          // console.log(solde);
-          res.status(400).json({
-            message: `On ne peut pas faire un payement de ${montant.toLocaleString(
-              "fr-FR",
-              { minimumFractionDigits: 0, maximumFractionDigits: 0 }
-            )} GNF, le solde dans la caisse est: ${solde.toLocaleString(
-              "fr-FR",
-              {
-                minimumFractionDigits: 0,
-                maximumFractionDigits: 0,
-              }
-            )} GNF`,
-          });
         }
-      }
-      else if(signe === "EURO"){
+        else if (signe === "EURO") {
           const montantDeviseGnf = montant / 100 * prix
-         if (Number(utilisateur.solde) >= Number(montantDeviseGnf)) {
-          const montantEnCoursPayement = Number(montantDeviseGnf) + Number(sortie.montant_payer);
-          if (montantEnCoursPayement > Number(sortie.montant_gnf)) {
-            const montantGnf = Number(sortie.montant_gnf);
-            const montantRestant = Number(sortie.montant_restant);
-            res.status(400).json({
-              message: `Le montant payé ${montantDeviseGnf.toLocaleString("fr-FR", {
-                minimumFractionDigits: 0,
-                maximumFractionDigits: 0,
-              })} GNF, est supérieur au montant restant qui est: ${Number(sortie.montant_payer) === 0
-                ?
-                montantGnf.toLocaleString("fr-FR", {
+          if (Number(utilisateur.solde) >= Number(montantDeviseGnf)) {
+            const montantEnCoursPayement = Number(montantDeviseGnf) + Number(sortie.montant_payer);
+            if (montantEnCoursPayement > Number(sortie.montant_gnf)) {
+              const montantGnf = Number(sortie.montant_gnf);
+              const montantRestant = Number(sortie.montant_restant);
+              res.status(400).json({
+                message: `Le montant payé ${montantDeviseGnf.toLocaleString("fr-FR", {
                   minimumFractionDigits: 0,
                   maximumFractionDigits: 0,
-                })
-                :
-                montantRestant.toLocaleString("fr-FR", {
-                  minimumFractionDigits: 0,
-                  maximumFractionDigits: 0,
-                })
-                } GNF`,
-            });
-          } else {
-            sortie.montant_payer = Number(sortie.montant_payer ?? 0) + Number(montantDeviseGnf);
-            sortie.montant_restant =
-              Number(sortie.montant_gnf ?? 0) - Number(sortie.montant_payer);
+                })} GNF, est supérieur au montant restant qui est: ${Number(sortie.montant_payer) === 0
+                  ?
+                  montantGnf.toLocaleString("fr-FR", {
+                    minimumFractionDigits: 0,
+                    maximumFractionDigits: 0,
+                  })
+                  :
+                  montantRestant.toLocaleString("fr-FR", {
+                    minimumFractionDigits: 0,
+                    maximumFractionDigits: 0,
+                  })
+                  } GNF`,
+              });
+            } else {
+              sortie.montant_payer = Number(sortie.montant_payer ?? 0) + Number(montantDeviseGnf);
+              sortie.montant_restant =
+                Number(sortie.montant_gnf ?? 0) - Number(sortie.montant_payer);
 
-            // Ajouter une entrée dans la table Payement
-            const payement = await Payement.create({
-              utilisateurId,
-              sortieId: sortie.id, // Inclure entreId
-              code: code, // Inclure entreId
-              montant,
-              type,
-              prix,
-              signe
-            });
+              // Ajouter une entrée dans la table Payement
+              const payement = await Payement.create({
+                utilisateurId,
+                sortieId: sortie.id, // Inclure entreId
+                code: code, // Inclure entreId
+                montant,
+                type,
+                prix,
+                signe
+              });
 
-            // Mettre à jour le solde de l'utilisateur connecté
-            utilisateur.solde = Number(utilisateur.solde || 0) - Number(montantDeviseGnf);
-            await utilisateur.save();
+              // Mettre à jour le solde de l'utilisateur connecté
+              utilisateur.solde = Number(utilisateur.solde || 0) - Number(montantDeviseGnf);
+              await utilisateur.save();
 
-            if (Number(sortie.montant_restant) === 0) {
-              sortie.status = "PAYEE";
-            } else if (Number(sortie.montant_payer) < Number(sortie.montant_gnf)) {
-              sortie.status = "EN COURS";
+              if (Number(sortie.montant_restant) === 0) {
+                sortie.status = "PAYEE";
+              } else if (Number(sortie.montant_payer) < Number(sortie.montant_gnf)) {
+                sortie.status = "EN COURS";
+              }
+
+              await sortie.save();
+              res.status(201).json({
+                message: "Payement ajouté avec succès.",
+                payement,
+              });
             }
-
-            await sortie.save();
-            res.status(201).json({
-              message: "Payement ajouté avec succès.",
-              payement,
+          } else {
+            const solde = Number(utilisateur.solde);
+            // console.log(solde);
+            res.status(400).json({
+              message: `On ne peut pas faire un payement de ${montantDeviseGnf.toLocaleString(
+                "fr-FR",
+                { minimumFractionDigits: 0, maximumFractionDigits: 0 }
+              )} GNF, le solde dans la caisse est: ${solde.toLocaleString(
+                "fr-FR",
+                {
+                  minimumFractionDigits: 0,
+                  maximumFractionDigits: 0,
+                }
+              )} GNF`,
             });
           }
-        } else {
-          const solde = Number(utilisateur.solde);
-          // console.log(solde);
-          res.status(400).json({
-            message: `On ne peut pas faire un payement de ${montantDeviseGnf.toLocaleString(
-              "fr-FR",
-              { minimumFractionDigits: 0, maximumFractionDigits: 0 }
-            )} GNF, le solde dans la caisse est: ${solde.toLocaleString(
-              "fr-FR",
-              {
-                minimumFractionDigits: 0,
-                maximumFractionDigits: 0,
-              }
-            )} GNF`,
-          });
-        }
-      }else if(signe === "USD"){
+        } else if (signe === "USD") {
           const montantDeviseGnf = montant / 100 * prix
-         if (Number(utilisateur.solde) >= Number(montantDeviseGnf)) {
-          const montantEnCoursPayement = Number(montantDeviseGnf) + Number(sortie.montant_payer);
-          if (montantEnCoursPayement > Number(sortie.montant_gnf)) {
-            const montantGnf = Number(sortie.montant_gnf);
-            const montantRestant = Number(sortie.montant_restant);
-            res.status(400).json({
-              message: `Le montant payé ${montantDeviseGnf.toLocaleString("fr-FR", {
-                minimumFractionDigits: 0,
-                maximumFractionDigits: 0,
-              })} GNF, est supérieur au montant restant qui est: ${Number(sortie.montant_payer) === 0
-                ?
-                montantGnf.toLocaleString("fr-FR", {
+          if (Number(utilisateur.solde) >= Number(montantDeviseGnf)) {
+            const montantEnCoursPayement = Number(montantDeviseGnf) + Number(sortie.montant_payer);
+            if (montantEnCoursPayement > Number(sortie.montant_gnf)) {
+              const montantGnf = Number(sortie.montant_gnf);
+              const montantRestant = Number(sortie.montant_restant);
+              res.status(400).json({
+                message: `Le montant payé ${montantDeviseGnf.toLocaleString("fr-FR", {
                   minimumFractionDigits: 0,
                   maximumFractionDigits: 0,
-                })
-                :
-                montantRestant.toLocaleString("fr-FR", {
-                  minimumFractionDigits: 0,
-                  maximumFractionDigits: 0,
-                })
-                } GNF`,
-            });
-          } else {
-            sortie.montant_payer = Number(sortie.montant_payer ?? 0) + Number(montantDeviseGnf);
-            sortie.montant_restant =
-              Number(sortie.montant_gnf ?? 0) - Number(sortie.montant_payer);
+                })} GNF, est supérieur au montant restant qui est: ${Number(sortie.montant_payer) === 0
+                  ?
+                  montantGnf.toLocaleString("fr-FR", {
+                    minimumFractionDigits: 0,
+                    maximumFractionDigits: 0,
+                  })
+                  :
+                  montantRestant.toLocaleString("fr-FR", {
+                    minimumFractionDigits: 0,
+                    maximumFractionDigits: 0,
+                  })
+                  } GNF`,
+              });
+            } else {
+              sortie.montant_payer = Number(sortie.montant_payer ?? 0) + Number(montantDeviseGnf);
+              sortie.montant_restant =
+                Number(sortie.montant_gnf ?? 0) - Number(sortie.montant_payer);
 
-            // Ajouter une entrée dans la table Payement
-            const payement = await Payement.create({
-              utilisateurId,
-              sortieId: sortie.id, // Inclure entreId
-              code: code, // Inclure entreId
-              montant,
-              type,
-              prix,
-              signe
-            });
+              // Ajouter une entrée dans la table Payement
+              const payement = await Payement.create({
+                utilisateurId,
+                sortieId: sortie.id, // Inclure entreId
+                code: code, // Inclure entreId
+                montant,
+                type,
+                prix,
+                signe
+              });
 
-            // Mettre à jour le solde de l'utilisateur connecté
-            utilisateur.solde = Number(utilisateur.solde || 0) - Number(montantDeviseGnf);
-            await utilisateur.save();
+              // Mettre à jour le solde de l'utilisateur connecté
+              utilisateur.solde = Number(utilisateur.solde || 0) - Number(montantDeviseGnf);
+              await utilisateur.save();
 
-            if (Number(sortie.montant_restant) === 0) {
-              sortie.status = "PAYEE";
-            } else if (Number(sortie.montant_payer) < Number(sortie.montant_gnf)) {
-              sortie.status = "EN COURS";
+              if (Number(sortie.montant_restant) === 0) {
+                sortie.status = "PAYEE";
+              } else if (Number(sortie.montant_payer) < Number(sortie.montant_gnf)) {
+                sortie.status = "EN COURS";
+              }
+
+              await sortie.save();
+              res.status(201).json({
+                message: "Payement ajouté avec succès.",
+                payement,
+              });
             }
-
-            await sortie.save();
-            res.status(201).json({
-              message: "Payement ajouté avec succès.",
-              payement,
+          } else {
+            const solde = Number(utilisateur.solde);
+            // console.log(solde);
+            res.status(400).json({
+              message: `On ne peut pas faire un payement de ${montantDeviseGnf.toLocaleString(
+                "fr-FR",
+                { minimumFractionDigits: 0, maximumFractionDigits: 0 }
+              )} GNF, le solde dans la caisse est: ${solde.toLocaleString(
+                "fr-FR",
+                {
+                  minimumFractionDigits: 0,
+                  maximumFractionDigits: 0,
+                }
+              )} GNF`,
             });
           }
-        } else {
-          const solde = Number(utilisateur.solde);
-          // console.log(solde);
-          res.status(400).json({
-            message: `On ne peut pas faire un payement de ${montantDeviseGnf.toLocaleString(
-              "fr-FR",
-              { minimumFractionDigits: 0, maximumFractionDigits: 0 }
-            )} GNF, le solde dans la caisse est: ${solde.toLocaleString(
-              "fr-FR",
-              {
-                minimumFractionDigits: 0,
-                maximumFractionDigits: 0,
-              }
-            )} GNF`,
-          });
         }
-      }
-      else if(signe === "XOF"){
+        else if (signe === "XOF") {
           const montantDeviseGnf = montant / 5000 * prix
-         if (Number(utilisateur.solde) >= Number(montantDeviseGnf)) {
-          const montantEnCoursPayement = Number(montantDeviseGnf) + Number(sortie.montant_payer);
-          if (montantEnCoursPayement > Number(sortie.montant_gnf)) {
-            const montantGnf = Number(sortie.montant_gnf);
-            const montantRestant = Number(sortie.montant_restant);
-            res.status(400).json({
-              message: `Le montant payé ${montantDeviseGnf.toLocaleString("fr-FR", {
-                minimumFractionDigits: 0,
-                maximumFractionDigits: 0,
-              })} GNF, est supérieur au montant restant qui est: ${Number(sortie.montant_payer) === 0
-                ?
-                montantGnf.toLocaleString("fr-FR", {
+          if (Number(utilisateur.solde) >= Number(montantDeviseGnf)) {
+            const montantEnCoursPayement = Number(montantDeviseGnf) + Number(sortie.montant_payer);
+            if (montantEnCoursPayement > Number(sortie.montant_gnf)) {
+              const montantGnf = Number(sortie.montant_gnf);
+              const montantRestant = Number(sortie.montant_restant);
+              res.status(400).json({
+                message: `Le montant payé ${montantDeviseGnf.toLocaleString("fr-FR", {
                   minimumFractionDigits: 0,
                   maximumFractionDigits: 0,
-                })
-                :
-                montantRestant.toLocaleString("fr-FR", {
-                  minimumFractionDigits: 0,
-                  maximumFractionDigits: 0,
-                })
-                } GNF`,
-            });
-          } else {
-            sortie.montant_payer = Number(sortie.montant_payer ?? 0) + Number(montantDeviseGnf);
-            sortie.montant_restant =
-              Number(sortie.montant_gnf ?? 0) - Number(sortie.montant_payer);
+                })} GNF, est supérieur au montant restant qui est: ${Number(sortie.montant_payer) === 0
+                  ?
+                  montantGnf.toLocaleString("fr-FR", {
+                    minimumFractionDigits: 0,
+                    maximumFractionDigits: 0,
+                  })
+                  :
+                  montantRestant.toLocaleString("fr-FR", {
+                    minimumFractionDigits: 0,
+                    maximumFractionDigits: 0,
+                  })
+                  } GNF`,
+              });
+            } else {
+              sortie.montant_payer = Number(sortie.montant_payer ?? 0) + Number(montantDeviseGnf);
+              sortie.montant_restant =
+                Number(sortie.montant_gnf ?? 0) - Number(sortie.montant_payer);
 
-            // Ajouter une entrée dans la table Payement
-            const payement = await Payement.create({
-              utilisateurId,
-              sortieId: sortie.id, // Inclure entreId
-              code: code, // Inclure entreId
-              montant,
-              type,
-              prix,
-              signe
-            });
+              // Ajouter une entrée dans la table Payement
+              const payement = await Payement.create({
+                utilisateurId,
+                sortieId: sortie.id, // Inclure entreId
+                code: code, // Inclure entreId
+                montant,
+                type,
+                prix,
+                signe
+              });
 
-            // Mettre à jour le solde de l'utilisateur connecté
-            utilisateur.solde = Number(utilisateur.solde || 0) - Number(montantDeviseGnf);
-            await utilisateur.save();
+              // Mettre à jour le solde de l'utilisateur connecté
+              utilisateur.solde = Number(utilisateur.solde || 0) - Number(montantDeviseGnf);
+              await utilisateur.save();
 
-            if (Number(sortie.montant_restant) === 0) {
-              sortie.status = "PAYEE";
-            } else if (Number(sortie.montant_payer) < Number(sortie.montant_gnf)) {
-              sortie.status = "EN COURS";
+              if (Number(sortie.montant_restant) === 0) {
+                sortie.status = "PAYEE";
+              } else if (Number(sortie.montant_payer) < Number(sortie.montant_gnf)) {
+                sortie.status = "EN COURS";
+              }
+
+              await sortie.save();
+              res.status(201).json({
+                message: "Payement ajouté avec succès.",
+                payement,
+              });
             }
-
-            await sortie.save();
-            res.status(201).json({
-              message: "Payement ajouté avec succès.",
-              payement,
+          } else {
+            const solde = Number(utilisateur.solde);
+            // console.log(solde);
+            res.status(400).json({
+              message: `On ne peut pas faire un payement de ${montantDeviseGnf.toLocaleString(
+                "fr-FR",
+                { minimumFractionDigits: 0, maximumFractionDigits: 0 }
+              )} GNF, le solde dans la caisse est: ${solde.toLocaleString(
+                "fr-FR",
+                {
+                  minimumFractionDigits: 0,
+                  maximumFractionDigits: 0,
+                }
+              )} GNF`,
             });
           }
-        } else {
-          const solde = Number(utilisateur.solde);
-          // console.log(solde);
-          res.status(400).json({
-            message: `On ne peut pas faire un payement de ${montantDeviseGnf.toLocaleString(
-              "fr-FR",
-              { minimumFractionDigits: 0, maximumFractionDigits: 0 }
-            )} GNF, le solde dans la caisse est: ${solde.toLocaleString(
-              "fr-FR",
-              {
-                minimumFractionDigits: 0,
-                maximumFractionDigits: 0,
-              }
-            )} GNF`,
-          });
         }
-      }
-      else {
+        else {
           return res
             .status(404)
             .json({ message: "Signe non renseigner." });
         }
+      } else {
+        res.status(400).json({
+          message: "Cette sortie n'a pas été validée.",
+        });
+      }
     }
   } catch (error) {
     console.error("Erreur lors de l'ajout du payement :", error);

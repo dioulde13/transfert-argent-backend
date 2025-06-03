@@ -289,25 +289,32 @@ const validerSortie = async (req, res) => {
     }
 
     if (utilisateur.solde > montant_due) {
-      await sortie.update({
-        utilisateurId: utilisateurId || sortie.utilisateurId,
-        partenaireId: partenaireId || sortie.partenaireId,
-        prix_2: prix_2 || sortie.prix_2,
-        montant_gnf: montant_due,
-        // status: "PAYEE",
-      });
-      // utilisateur.solde = (utilisateur.solde || 0) - montant_due;
-      // await utilisateur.save();
+      if (sortie.payement_type === "NON VALIDÉE") {
+        await sortie.update({
+          utilisateurId: utilisateurId || sortie.utilisateurId,
+          partenaireId: partenaireId || sortie.partenaireId,
+          prix_2: prix_2 || sortie.prix_2,
+          montant_gnf: montant_due,
+          // status: "PAYEE",
+        });
+        // utilisateur.solde = (utilisateur.solde || 0) - montant_due;
+        // await utilisateur.save();
 
-      // Mise à jour du montant prêté du partenaire
-      partenaire.montant_preter =
-        (partenaire.montant_preter || 0) + sortie.montant;
-      await partenaire.save();
-
-      res.status(200).json({
-        message: "Sortie validée avec succès.",
-        sortie,
-      });
+        // Mise à jour du montant prêté du partenaire
+        partenaire.montant_preter =
+          (partenaire.montant_preter || 0) + sortie.montant;
+        await partenaire.save();
+        sortie.payement_type = "VALIDÉE";
+        await sortie.save();
+        res.status(200).json({
+          message: "Sortie validée avec succès.",
+          sortie,
+        });
+      } else {
+        res.status(400).json({
+          message: "Cette sortie a été déjà validée.",
+        });
+      }
     } else {
       const solde = Number(utilisateur.solde);
       res.status(400).json({
