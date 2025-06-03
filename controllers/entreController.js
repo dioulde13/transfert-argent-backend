@@ -104,7 +104,7 @@ const ajouterEntre = async (req, res) => {
       order: [["id", "DESC"]],
     });
 
-    let newCode = "AB0001";
+    let newCode = "AB0501";
     if (lastEntry) {
       const lastCode = lastEntry.code || "";
       const numericPart = parseInt(lastCode.slice(2), 10);

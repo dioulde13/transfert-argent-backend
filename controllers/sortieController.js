@@ -220,7 +220,7 @@ const ajouterAutreSortie = async (req, res) => {
         telephone_receveur: "",
         status: "PAYEE",
       });
-      utilisateur.autre_solde = (utilisateur.solde || 0) - montantClient;
+      utilisateur.solde = (utilisateur.solde || 0) - montantClient;
       await utilisateur.save();
 
       res.status(201).json({
