@@ -289,7 +289,7 @@ const validerSortie = async (req, res) => {
     }
 
     if (utilisateur.solde > montant_due) {
-      if (sortie.payement_type === "NON VALIDÉE") {
+      if (sortie.etat === "NON VALIDÉE") {
         await sortie.update({
           utilisateurId: utilisateurId || sortie.utilisateurId,
           partenaireId: partenaireId || sortie.partenaireId,
@@ -304,7 +304,7 @@ const validerSortie = async (req, res) => {
         partenaire.montant_preter =
           (partenaire.montant_preter || 0) + sortie.montant;
         await partenaire.save();
-        sortie.payement_type = "VALIDÉE";
+        sortie.etat = "VALIDÉE";
         await sortie.save();
         res.status(200).json({
           message: "Sortie validée avec succès.",

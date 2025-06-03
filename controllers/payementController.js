@@ -201,7 +201,7 @@ const ajouterPayement = async (req, res) => {
       }
 
 
-      if (sortie.payement_type === "VALIDÉE") {
+      if (sortie.etat === "VALIDÉE") {
         if (prix === 0) {
           if (Number(utilisateur.solde) >= Number(montant)) {
             const montantEnCoursPayement = Number(montant) + Number(sortie.montant_payer);

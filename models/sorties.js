@@ -106,6 +106,11 @@ const Sortie = sequelize.define("Sortie", {
     allowNull: false,
   },
   payement_type: {
+    type: DataTypes.ENUM("COMPLET", "NON COMPLET"),
+    allowNull: false,
+    defaultValue: "NON COMPLET",  
+  },
+   etat: {
     type: DataTypes.ENUM("VALIDÉE", "NON VALIDÉE"),
     allowNull: false,
     defaultValue: "NON VALIDÉE",  
