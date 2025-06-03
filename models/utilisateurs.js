@@ -41,7 +41,12 @@ const Utilisateur = sequelize.define('Utilisateur', {
     allowNull: false,
     defaultValue: 0,
   },
-   autre_solde: {
+  autre_solde: {
+    type: DataTypes.BIGINT,
+    allowNull: false,
+    defaultValue: 0,
+  },
+  soldePDV: {
     type: DataTypes.BIGINT,
     allowNull: false,
     defaultValue: 0,
@@ -51,21 +56,6 @@ const Utilisateur = sequelize.define('Utilisateur', {
     allowNull: false,
     defaultValue: 0,
   },
-  // solde_echange: {
-  //   type: DataTypes.BIGINT,
-  //   allowNull: false,
-  //   defaultValue: 0,
-  // },
-  // solde_echange_dollar: {
-  //   type: DataTypes.BIGINT,
-  //   allowNull: false,
-  //   defaultValue: 0,
-  // },
-  // solde_echange_euro: {
-  //   type: DataTypes.BIGINT,
-  //   allowNull: false,
-  //   defaultValue: 0,
-  // },
   email: {
     type: DataTypes.STRING,
     allowNull: false,
