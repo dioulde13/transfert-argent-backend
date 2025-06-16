@@ -564,6 +564,7 @@ const listerPayement = async (req, res) => {
           attributes: [
             "id",
             "code",
+            "codeEnvoyer",
             "expediteur",
             "pays_exp",
             "receveur",
