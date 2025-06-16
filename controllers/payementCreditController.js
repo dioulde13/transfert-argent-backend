@@ -4,10 +4,10 @@ const Credit = require('../models/credit');
 
 const ajouterPayementCredit = async (req, res) => {
     try {
-        const { utilisateurId, reference, montant } = req.body;
+        const { utilisateurId, reference, montant , date_creation} = req.body;
 
         // Vérification de la validité des données reçues
-        if (!utilisateurId || !reference || !montant) {
+        if (!utilisateurId || !reference || !montant || !date_creation) {
             return res.status(400).json({ message: "Tous les champs sont requis." });
         }
 
@@ -42,6 +42,7 @@ const ajouterPayementCredit = async (req, res) => {
         const paiement = await PayementCreadit.create({
             utilisateurId,
             creditId: credit.id,
+            date_creation,
             reference,
             montant,
         });

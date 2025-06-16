@@ -35,10 +35,10 @@ const sommeDepenseAujourdHui = async (req, res) => {
 
 const ajouterDepense = async (req, res) => {
   try {
-    const { utilisateurId, motif, montant } = req.body;
+    const { utilisateurId, motif, montant, date_creation } = req.body;
 
     // Vérifier si tous les champs nécessaires sont fournis
-    if (!utilisateurId || !motif || montant === undefined) {
+    if (!utilisateurId || !motif || montant === undefined || !date_creation) {
       return res.status(400).json({ message: 'Tous les champs sont obligatoires.' });
     }
 
@@ -48,14 +48,15 @@ const ajouterDepense = async (req, res) => {
       return res.status(404).json({ message: 'Utilisateur introuvable.' });
     }
 
-    console.log(utilisateur.solde);
-    console.log(montant);
+    // console.log(utilisateur.solde);
+    // console.log(montant);
 
     // Vérifier si l'utilisateur a suffisamment de solde
     if (utilisateur.solde >= montant) {
       // Créer une nouvelle dépense
       const depense = await Depense.create({
         utilisateurId,
+        date_creation,
         motif,
         montant,
       });

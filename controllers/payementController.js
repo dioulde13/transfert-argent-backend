@@ -6,11 +6,11 @@ const Sortie = require("../models/sorties");
 
 const ajouterPayement = async (req, res) => {
   try {
-    let { utilisateurId, code, montant, prix, type, signe } = req.body;
+    let { utilisateurId, code, montant, date_creation, prix, type, signe } = req.body;
     prix = prix ?? 0;
     signe = signe ?? 0;
 
-    if (!utilisateurId || !code || !montant || !type) {
+    if (!utilisateurId || !code || !montant || !type || !date_creation) {
       return res
         .status(400)
         .json({ message: "Tous les champs sont obligatoires." });
@@ -47,6 +47,7 @@ const ajouterPayement = async (req, res) => {
             entreId: entre.id,
             code: code,
             montant,
+            date_creation,
             type,
             prix,
             signe
@@ -86,6 +87,7 @@ const ajouterPayement = async (req, res) => {
               entreId: entre.id,
               code: code,
               montant,
+              date_creation,
               type,
               prix,
               signe
@@ -127,6 +129,7 @@ const ajouterPayement = async (req, res) => {
               entreId: entre.id, // Inclure entreId
               code: code, // Inclure entreId
               montant,
+              date_creation,
               type,
               prix,
               signe
@@ -166,6 +169,7 @@ const ajouterPayement = async (req, res) => {
               entreId: entre.id,
               code: code,
               montant,
+              date_creation,
               type,
               prix,
               signe
@@ -235,6 +239,7 @@ const ajouterPayement = async (req, res) => {
                 utilisateurId,
                 sortieId: sortie.id, // Inclure entreId
                 code: code, // Inclure entreId
+                date_creation,
                 montant,
                 type,
               });
@@ -307,6 +312,7 @@ const ajouterPayement = async (req, res) => {
                 sortieId: sortie.id, // Inclure entreId
                 code: code, // Inclure entreId
                 montant,
+                date_creation,
                 type,
                 prix,
                 signe
@@ -379,6 +385,7 @@ const ajouterPayement = async (req, res) => {
                 sortieId: sortie.id, // Inclure entreId
                 code: code, // Inclure entreId
                 montant,
+                date_creation,
                 type,
                 prix,
                 signe
@@ -452,6 +459,7 @@ const ajouterPayement = async (req, res) => {
                 sortieId: sortie.id, // Inclure entreId
                 code: code, // Inclure entreId
                 montant,
+                date_creation,
                 type,
                 prix,
                 signe

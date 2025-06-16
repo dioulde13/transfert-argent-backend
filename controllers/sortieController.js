@@ -73,6 +73,7 @@ const ajouterSortie = async (req, res) => {
       deviseId,
       expediteur,
       codeEnvoyer,
+      date_creation,
       receveur,
       montant,
       telephone_receveur,
@@ -81,6 +82,7 @@ const ajouterSortie = async (req, res) => {
     if (
       !utilisateurId ||
       !partenaireId ||
+      !date_creation ||
       !deviseId ||
       !expediteur ||
       !codeEnvoyer ||
@@ -138,6 +140,7 @@ const ajouterSortie = async (req, res) => {
         pays_dest: devise.paysDepart,
         code: newCode,
         expediteur,
+        date_creation,
         codeEnvoyer,
         telephone_receveur,
         receveur,

@@ -3,10 +3,10 @@ const Utilisateur = require("../models/utilisateurs");
 
 const ajouterCredit = async (req, res) => {
   try {
-    const { utilisateurId, type, nom, montant } = req.body;
+    const { utilisateurId, type, nom, montant, date_creation } = req.body;
 
     // Vérification des champs requis
-    if (!utilisateurId || !nom || !type || !montant) {
+    if (!utilisateurId || !nom || !type || !montant || !date_creation) {
       return res.status(400).json({ message: "Tous les champs sont obligatoires." });
     }
 
@@ -54,6 +54,7 @@ const ajouterCredit = async (req, res) => {
           utilisateurId,
           nom,
           type,
+          date_creation,
           reference: newCode,
           montant,
         });
@@ -65,6 +66,7 @@ const ajouterCredit = async (req, res) => {
         utilisateurId,
         nom,
         type,
+        date_creation,
         reference: newCode,
         montant,
       });

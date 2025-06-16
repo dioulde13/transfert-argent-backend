@@ -53,6 +53,7 @@ const ajouterEntre = async (req, res) => {
       deviseId,
       expediteur,
       receveur,
+      date_creation,
       montant_cfa,
       montant,
       telephone_receveur,
@@ -63,6 +64,7 @@ const ajouterEntre = async (req, res) => {
       !utilisateurId ||
       !partenaireId ||
       !deviseId ||
+      !date_creation ||
       !expediteur ||
       !receveur ||
       !montant_cfa ||
@@ -126,6 +128,7 @@ const ajouterEntre = async (req, res) => {
         expediteur,
         nomCLient: "",
         montant,
+        date_creation,
         receveur,
         montant_gnf: montant_due,
         signe_1: Sign1,
