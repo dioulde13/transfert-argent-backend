@@ -86,6 +86,11 @@ const Sortie = sequelize.define("Sortie", {
     allowNull: false,
     defaultValue: 0,
   },
+  frais: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    defaultValue: 0,
+  },
   montant_gnf: {
     type: DataTypes.BIGINT,
     allowNull: false,

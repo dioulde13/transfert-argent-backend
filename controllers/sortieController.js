@@ -73,6 +73,7 @@ const ajouterSortie = async (req, res) => {
       deviseId,
       expediteur,
       codeEnvoyer,
+      frais,
       date_creation,
       receveur,
       montant,
@@ -83,6 +84,7 @@ const ajouterSortie = async (req, res) => {
       !utilisateurId ||
       !partenaireId ||
       !date_creation ||
+      !frais ||
       !deviseId ||
       !expediteur ||
       !codeEnvoyer ||
@@ -142,6 +144,7 @@ const ajouterSortie = async (req, res) => {
         expediteur,
         date_creation,
         codeEnvoyer,
+        frais,
         telephone_receveur,
         receveur,
         montant_gnf: montant_due,
