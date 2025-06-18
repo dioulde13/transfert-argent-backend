@@ -183,7 +183,7 @@ const ajouterAutreEntre = async (req, res) => {
     }
 
     // Générer un code à 6 chiffres
-    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    const code = 'AB' + Math.floor(1000 + Math.random() * 9000).toString();
 
     // Créer une nouvelle entrée avec un code généré automatiquement
     const entre = await Entre.create({
@@ -192,6 +192,7 @@ const ajouterAutreEntre = async (req, res) => {
       deviseId: null,
       pays_exp: "",
       pays_dest: "",
+      code_envoyer: "",
       code: code,
       expediteur: "",
       nomCLient,

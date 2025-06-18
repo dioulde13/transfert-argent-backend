@@ -186,10 +186,10 @@ const ajouterSortie = async (req, res) => {
 
 const ajouterAutreSortie = async (req, res) => {
   try {
-    const { utilisateurId, nomCLient, montantClient } = req.body;
+    const { utilisateurId, nomCLient, montantClient, date_creation } = req.body;
 
     // Vérifier si tous les champs obligatoires sont présents
-    if (!utilisateurId || !nomCLient || !montantClient) {
+    if (!utilisateurId || !nomCLient || !montantClient || !date_creation) {
       return res.status(400).json({
         message: "Tous les champs obligatoires doivent être remplis.",
       });
@@ -201,7 +201,7 @@ const ajouterAutreSortie = async (req, res) => {
       return res.status(404).json({ message: "Utilisateur introuvable." });
     }
 
-    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    const code = 'KMC' + Math.floor(1000 + Math.random() * 9000).toString();
 
     if (utilisateur.solde > montantClient) {
       const sortie = await Sortie.create({
@@ -215,6 +215,7 @@ const ajouterAutreSortie = async (req, res) => {
         codeEnvoyer: "",
         expediteur: "",
         nomCLient,
+        date_creation,
         montantClient,
         receveur: "",
         montant_gnf: 0,
