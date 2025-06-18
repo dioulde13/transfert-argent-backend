@@ -53,6 +53,7 @@ const ajouterEntre = async (req, res) => {
       deviseId,
       expediteur,
       receveur,
+      code_envoyer,
       date_creation,
       montant_cfa,
       montant,
@@ -65,6 +66,7 @@ const ajouterEntre = async (req, res) => {
       !partenaireId ||
       !deviseId ||
       !date_creation ||
+      !code_envoyer ||
       !expediteur ||
       !receveur ||
       !montant_cfa ||
@@ -125,6 +127,7 @@ const ajouterEntre = async (req, res) => {
         pays_exp: "Guinée",
         pays_dest: PaysDest,
         code: newCode,
+        code_envoyer,
         expediteur,
         nomCLient: "",
         montant,
@@ -164,10 +167,10 @@ const ajouterEntre = async (req, res) => {
 
 const ajouterAutreEntre = async (req, res) => {
   try {
-    const { utilisateurId, nomCLient, montantClient } = req.body;
+    const { utilisateurId, nomCLient, montantClient ,date_creation} = req.body;
 
     // Vérifier si tous les champs obligatoires sont présents
-    if (!utilisateurId || !nomCLient || !montantClient) {
+    if (!utilisateurId || !nomCLient || !montantClient || !date_creation) {
       return res.status(400).json({
         message: "Tous les champs obligatoires doivent être remplis.",
       });
@@ -193,6 +196,7 @@ const ajouterAutreEntre = async (req, res) => {
       expediteur: "",
       nomCLient,
       montantClient,
+      date_creation,
       receveur: "",
       montant_gnf: 0,
       signe_1: "",

@@ -10,7 +10,38 @@ const Rembourser = require("./rembourser");
 const Payement = require("./payement");
 const Depense = require("./depense");
 const Credit = require("./credit");
-const PayementCreadit = require("./payementCredit");
+const PartenaireOM = require("./partenaireOM");
+const OrangeMoney = require("./orangeMoney");
+const PayementOM = require("./payementOM");
+const PayementPartenaireOm = require("./payementPartenaireOm");
+
+
+OrangeMoney.belongsTo(PayementOM, { foreignKey: "orangeMoneyId" });
+PayementOM.belongsTo(OrangeMoney, { foreignKey: "orangeMoneyId" });
+
+Utilisateur.hasMany(PayementPartenaireOm, { foreignKey: "orangeMoneyId" });
+PayementPartenaireOm.belongsTo(Utilisateur, { foreignKey: "orangeMoneyId" });
+
+PartenaireOM.hasMany(PayementPartenaireOm, { foreignKey: "partenaireOMId" });
+PayementPartenaireOm.belongsTo(PartenaireOM, { foreignKey: "partenaireOMId" });
+
+Utilisateur.hasMany(PayementPartenaireOm, { foreignKey: "utilisateurId" });
+PayementPartenaireOm.belongsTo(Utilisateur, { foreignKey: "utilisateurId" });
+
+Utilisateur.hasMany(PayementOM, { foreignKey: "utilisateurId" });
+PayementOM.belongsTo(Utilisateur, { foreignKey: "utilisateurId" });
+
+Utilisateur.hasMany(PayementOM, { foreignKey: "utilisateurId" });
+PayementOM.belongsTo(Utilisateur, { foreignKey: "utilisateurId" });
+
+Utilisateur.hasMany(OrangeMoney, { foreignKey: "utilisateurId" });
+OrangeMoney.belongsTo(Utilisateur, { foreignKey: "utilisateurId" });
+
+Utilisateur.hasMany(OrangeMoney, { foreignKey: "utilisateurId" });
+OrangeMoney.belongsTo(Utilisateur, { foreignKey: "utilisateurId" }); 
+
+Utilisateur.hasMany(PartenaireOM, { foreignKey: "utilisateurId" });
+PartenaireOM.belongsTo(Utilisateur, { foreignKey: "utilisateurId" });
 
 // Relation One-to-Many : Un Partenaire peut avoir plusieurs Entres
 Partenaire.hasMany(Entre, { foreignKey: "partenaireId" });
@@ -103,4 +134,8 @@ module.exports = {
   Partenaire,
   Utilisateur,
   Rembourser,
+  PartenaireOM,
+  OrangeMoney,
+  PayementOM,
+  PayementPartenaireOm
 };

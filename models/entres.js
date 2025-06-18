@@ -40,6 +40,10 @@ const Entre = sequelize.define("Entre", {
     type: DataTypes.STRING,
     allowNull: false,
   },
+  code_envoyer: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
   nomCLient: {
     type: DataTypes.STRING,
     allowNull: false,

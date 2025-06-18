@@ -120,6 +120,11 @@ const Sortie = sequelize.define("Sortie", {
     allowNull: false,
     defaultValue: "NON VALIDÉE",  
   },
+  type_payement: {
+    type: DataTypes.ENUM("OM", "CASH"),
+    allowNull: false,
+    defaultValue: "CASH",  
+  },
   status: {
     type: DataTypes.ENUM("NON PAYEE", "PAYEE", "EN COURS", "ANNULEE"),
     allowNull: false,

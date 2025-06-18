@@ -230,35 +230,73 @@ const ajouterPayement = async (req, res) => {
                   } GNF`,
               });
             } else {
-              sortie.montant_payer = Number(sortie.montant_payer ?? 0) + Number(montant);
-              sortie.montant_restant =
-                Number(sortie.montant_gnf ?? 0) - Number(sortie.montant_payer);
 
-              // Ajouter une entrée dans la table Payement
-              const payement = await Payement.create({
-                utilisateurId,
-                sortieId: sortie.id, // Inclure entreId
-                code: code, // Inclure entreId
-                date_creation,
-                montant,
-                type,
-              });
+              if (sortie.type_payement === "OM") {
+                if (utilisateur.soldePDV >= Number(montant)) {
+                  sortie.montant_payer = Number(sortie.montant_payer ?? 0) + Number(montant);
+                  sortie.montant_restant = Number(sortie.montant_gnf ?? 0) - Number(sortie.montant_payer);
 
-              // Mettre à jour le solde de l'utilisateur connecté
-              utilisateur.solde = Number(utilisateur.solde || 0) - Number(montant);
-              await utilisateur.save();
+                  // Ajouter une entrée dans la table Payement
+                  const payement = await Payement.create({
+                    utilisateurId,
+                    sortieId: sortie.id, // Inclure entreId
+                    code: code, // Inclure entreId
+                    date_creation,
+                    montant,
+                    type,
+                  });
 
-              if (Number(sortie.montant_restant) === 0) {
-                sortie.status = "PAYEE";
-              } else if (Number(sortie.montant_payer) < Number(sortie.montant_gnf)) {
-                sortie.status = "EN COURS";
+                  utilisateur.soldePDV = Number(utilisateur.soldePDV || 0) - Number(montant);
+                  // Mettre à jour le solde de l'utilisateur connecté
+                  utilisateur.solde = Number(utilisateur.solde || 0) - Number(montant);
+                  await utilisateur.save();
+
+                  if (Number(sortie.montant_restant) === 0) {
+                    sortie.status = "PAYEE";
+                  } else if (Number(sortie.montant_payer) < Number(sortie.montant_gnf)) {
+                    sortie.status = "EN COURS";
+                  }
+
+                  await sortie.save();
+                  res.status(201).json({
+                    message: "Payement ajouté avec succès.",
+                    payement,
+                  });
+                } else {
+                  return res
+                    .status(400)
+                    .json({ message: `Solde pdv insuffisant qui est: ${Number(utilisateur.soldePDV)}` });
+                }
+              } else {
+                sortie.montant_payer = Number(sortie.montant_payer ?? 0) + Number(montant);
+                sortie.montant_restant = Number(sortie.montant_gnf ?? 0) - Number(sortie.montant_payer);
+
+                // Ajouter une entrée dans la table Payement
+                const payement = await Payement.create({
+                  utilisateurId,
+                  sortieId: sortie.id, // Inclure entreId
+                  code: code, // Inclure entreId
+                  date_creation,
+                  montant,
+                  type,
+                });
+
+                // Mettre à jour le solde de l'utilisateur connecté
+                utilisateur.solde = Number(utilisateur.solde || 0) - Number(montant);
+                await utilisateur.save();
+
+                if (Number(sortie.montant_restant) === 0) {
+                  sortie.status = "PAYEE";
+                } else if (Number(sortie.montant_payer) < Number(sortie.montant_gnf)) {
+                  sortie.status = "EN COURS";
+                }
+
+                await sortie.save();
+                res.status(201).json({
+                  message: "Payement ajouté avec succès.",
+                  payement,
+                });
               }
-
-              await sortie.save();
-              res.status(201).json({
-                message: "Payement ajouté avec succès.",
-                payement,
-              });
             }
           } else {
             const solde = Number(utilisateur.solde);
@@ -450,8 +488,7 @@ const ajouterPayement = async (req, res) => {
               });
             } else {
               sortie.montant_payer = Number(sortie.montant_payer ?? 0) + Number(montantDeviseGnf);
-              sortie.montant_restant =
-                Number(sortie.montant_gnf ?? 0) - Number(sortie.montant_payer);
+              sortie.montant_restant = Number(sortie.montant_gnf ?? 0) - Number(sortie.montant_payer);
 
               // Ajouter une entrée dans la table Payement
               const payement = await Payement.create({
@@ -552,6 +589,7 @@ const listerPayement = async (req, res) => {
           attributes: [
             "id",
             "code",
+            "code_envoyer",
             "expediteur",
             "pays_dest",
             "montant_cfa",
@@ -568,6 +606,8 @@ const listerPayement = async (req, res) => {
             "expediteur",
             "pays_exp",
             "receveur",
+            "type_payement",
+            "telephone_receveur",
             "montant",
             "montant_payer",
             "montant_restant",

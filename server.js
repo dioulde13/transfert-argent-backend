@@ -23,6 +23,13 @@ const payementEchangeRoute = require("./routes/payementEchangeRoute");
 const beneficeRoute = require("./routes/beneficeRoute");
 const calculBeneficeRoute = require("./routes/calculBeneficeRoute");
 const verifierCaisseRoute = require("./routes/verifierCaisseRoute");
+const partenaireOmRoute = require("./routes/partenaireOmRoute");
+const payementPartenaireOmRoute = require("./routes/payementPartenaireOmRoute");
+const orangeMoneyRoute = require("./routes/orangeMoneyRoute");
+const payementOMRoute = require("./routes/payementOMRoute");
+
+
+
 
 const app = express();
 app.use(bodyParser.json());
@@ -65,6 +72,10 @@ app.get("/check-db-connection", async (req, res) => {
 
 // Initialisation des routes
 app.use("/api/utilisateurs", utilisateurRoutes);
+app.use("/api/partenaireOm", partenaireOmRoute);
+app.use("/api/orangeMoney", orangeMoneyRoute);
+app.use("/api/payementOM", payementOMRoute);
+app.use("/api/payementPartenaireOm", payementPartenaireOmRoute);
 app.use("/api/partenaires", partenaireRoutes);
 app.use("/api/verifierCaisse", verifierCaisseRoute);
 app.use("/api/devises", deviseRoutes);

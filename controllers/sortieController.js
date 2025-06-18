@@ -256,7 +256,7 @@ const ajouterAutreSortie = async (req, res) => {
 const validerSortie = async (req, res) => {
   try {
     const { code } = req.params; // Récupération du code depuis l'URL
-    const { utilisateurId, partenaireId, prix_2 } = req.body;
+    const { utilisateurId, partenaireId, prix_2 ,type_payement} = req.body;
 
     // Vérifier si la sortie existe en fonction du code
     const sortie = await Sortie.findOne({ where: { code } });
@@ -301,16 +301,17 @@ const validerSortie = async (req, res) => {
           partenaireId: partenaireId || sortie.partenaireId,
           prix_2: prix_2 || sortie.prix_2,
           montant_gnf: montant_due,
-          // status: "PAYEE",
         });
-        // utilisateur.solde = (utilisateur.solde || 0) - montant_due;
-        // await utilisateur.save();
-
-        // Mise à jour du montant prêté du partenaire
         partenaire.montant_preter =
           (partenaire.montant_preter || 0) + sortie.montant;
         await partenaire.save();
         sortie.etat = "VALIDÉE";
+        console.log(type_payement);
+        if (type_payement === "OM") {
+          sortie.type_payement = "OM";
+        } else {
+          sortie.type_payement = "CASH";
+        }
         await sortie.save();
         res.status(200).json({
           message: "Sortie validée avec succès.",
