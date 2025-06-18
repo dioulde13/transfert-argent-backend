@@ -1,5 +1,5 @@
 const PartenaireOM = require("../models/partenaireOM");
-const PayementPartenaireOm = require("../models/PayementPartenaireOm");
+const PayementPartenaireOm = require("../models/payementPartenaireOm");
 const Utilisateur = require("../models/utilisateurs");
 
 
