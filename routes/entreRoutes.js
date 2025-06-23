@@ -1,21 +1,21 @@
 const express = require('express');
 const entreController = require('../controllers/entreController');
-const authMiddleware = require('./authMiddleware'); // importation du middleware
+// const authMiddleware = require('./authMiddleware'); // importation du middleware
 
 const router = express.Router();
 
 // Route pour ajouter une entrée (protégée)
-router.post('/create', authMiddleware, entreController.ajouterEntre);
+router.post('/create', entreController.ajouterEntre);
 
-router.post('/createAutre', authMiddleware, entreController.ajouterAutreEntre);
+router.post('/createAutre', entreController.ajouterAutreEntre);
 
 // Route pour récupérer la liste des entrées avec les infos des utilisateurs et partenaires associés (protégée)
-router.get('/liste', authMiddleware, entreController.recupererEntreesAvecAssocies);
+router.get('/liste', entreController.recupererEntreesAvecAssocies);
 
-router.get('/compte', authMiddleware, entreController.compterEntreesDuJour);
+router.get('/compte', entreController.compterEntreesDuJour);
 
-router.put('/annuler/:code', authMiddleware, entreController.annulerEntre);
+router.put('/annuler/:code', entreController.annulerEntre);
 
-router.post('/payer', authMiddleware, entreController.payerEntrees);
+router.post('/payer', entreController.payerEntrees);
 
 module.exports = router;
