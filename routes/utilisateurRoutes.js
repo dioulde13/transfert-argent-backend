@@ -1,5 +1,6 @@
 const express = require('express');
 const utilisateurController = require('../controllers/utilisateurController');
+const authMiddleware = require('./authMiddleware'); // importation du middleware
 
 const router = express.Router();
 
@@ -7,6 +8,6 @@ const router = express.Router();
 router.post('/create', utilisateurController.ajouterUtilisateur);
 
 // Route pour récupérer la liste des utilisateurs
-router.get('/liste', utilisateurController.recupererUtilisateursAvecRequete);
+router.get('/liste', authMiddleware, utilisateurController.recupererUtilisateursAvecRequete);
 
 module.exports = router;

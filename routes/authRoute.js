@@ -1,6 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const utilisateurController = require('../controllers/userAuth');
+const authMiddleware = require('./authMiddleware'); // importation du middleware
+
 
 // Route pour ajouter un utilisateur
 router.post('/add', utilisateurController.ajouterUtilisateur);
@@ -9,7 +11,7 @@ router.post('/add', utilisateurController.ajouterUtilisateur);
 router.post('/login', utilisateurController.login);
 
 // Route pour connecter un utilisateur
-router.get('/all', utilisateurController.getAllUser);
+router.get('/all', authMiddleware , utilisateurController.getAllUser);
 
 router.post('/rechargerSolde', utilisateurController.rechargerSolde);
 
