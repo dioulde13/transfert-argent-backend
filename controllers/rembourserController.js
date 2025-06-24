@@ -1,15 +1,14 @@
 const Rembourser = require("../models/rembourser"); // Modèle Rembourser
 const Utilisateur = require("../models/utilisateurs"); // Modèle Utilisateur
 const Partenaire = require("../models/partenaires"); // Modèle Partenaire
-// const Devise = require("../models/devises");
 const { Sequelize } = require("sequelize");
 
 const ajouterRemboursement = async (req, res) => {
   try {
-    const { utilisateurId, prix, partenaireId, nom, montant} = req.body;
+    const { utilisateurId, prix, partenaireId, nom, montant, type } = req.body;
 
     // Vérification des champs requis
-    if (!utilisateurId || !partenaireId || !montant) {
+    if (!utilisateurId || !partenaireId || !montant || !type) {
       return res
         .status(400)
         .json({ message: "Tous les champs sont obligatoires." });
@@ -32,33 +31,35 @@ const ajouterRemboursement = async (req, res) => {
 
     const prixInt = parseInt(prix, 10) || 0;
 
-    console.log(montant_due);
-
     if (partenaire.montant_preter >= montant) {
       if (utilisateur.solde > montant_due) {
         const remboursement = await Rembourser.create({
           utilisateurId,
           partenaireId,
-          // deviseId,
-          montant_gnf: prix? montant_due : 0,
+          montant_gnf: montant_due,
           montant,
           nom,
-          type:prixInt?'R':'NON R',
-          prix:prixInt,
+          type,
+          prix: prixInt,
         });
 
-        // Mettre à jour le solde de l'utilisateur connecté
         utilisateur.solde = (utilisateur.solde || 0) - montant_due;
         await utilisateur.save();
 
-        // Mettre à jour le montant_preter du partenaire
-        partenaire.montant_preter = (partenaire.montant_preter || 0) - montant;
-        await partenaire.save();
+        if (type === "R") {
+          partenaire.montant_preter = (partenaire.montant_preter || 0) - montant;
+          await partenaire.save();
 
-        res.status(201).json({
-          message: "Remboursement ajouté avec succès.",
-          remboursement,
-        });
+          res.status(201).json({
+            message: "Remboursement ajouté avec succès.",
+            remboursement,
+          });
+        } else {
+          res.status(201).json({
+            message: "Bénéfice envoyé avec succès.",
+            remboursement,
+          });
+        }
       } else {
         return res
           .status(400)

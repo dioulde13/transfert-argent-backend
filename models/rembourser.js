@@ -43,9 +43,9 @@ const Rembourser = sequelize.define('Rembourser', {
     defaultValue: DataTypes.NOW, 
   },
   type: {
-    type: DataTypes.ENUM("R", "NON R"),
+    type: DataTypes.ENUM("R", "BÉNÉFICE"),
     allowNull: false,
-    defaultValue: "NON R",
+    defaultValue: "BÉNÉFICE",
   },
 });
 
