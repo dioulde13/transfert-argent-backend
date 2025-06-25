@@ -5,10 +5,10 @@ const { Sequelize } = require("sequelize");
 
 const ajouterRemboursement = async (req, res) => {
   try {
-    const { utilisateurId, prix, partenaireId, nom, montant, type } = req.body;
+    const { utilisateurId, prix, partenaireId, nom, montant, type , date_creation} = req.body;
 
     // Vérification des champs requis
-    if (!utilisateurId || !partenaireId || !montant || !type) {
+    if (!utilisateurId || !partenaireId || !montant || !type || !date_creation) {
       return res
         .status(400)
         .json({ message: "Tous les champs sont obligatoires." });
@@ -31,22 +31,23 @@ const ajouterRemboursement = async (req, res) => {
 
     const prixInt = parseInt(prix, 10) || 0;
 
-    if (partenaire.montant_preter >= montant) {
-      if (utilisateur.solde > montant_due) {
-        const remboursement = await Rembourser.create({
-          utilisateurId,
-          partenaireId,
-          montant_gnf: montant_due,
-          montant,
-          nom,
-          type,
-          prix: prixInt,
-        });
+    if (type === "R") {
+      if (partenaire.montant_preter >= montant) {
+        if (utilisateur.solde > montant_due) {
+          const remboursement = await Rembourser.create({
+            utilisateurId,
+            partenaireId,
+            date_creation,
+            montant_gnf: montant_due,
+            montant,
+            nom,
+            type,
+            prix: prixInt,
+          });
 
-        utilisateur.solde = (utilisateur.solde || 0) - montant_due;
-        await utilisateur.save();
+          utilisateur.solde = (utilisateur.solde || 0) - montant_due;
+          await utilisateur.save();
 
-        if (type === "R") {
           partenaire.montant_preter = (partenaire.montant_preter || 0) - montant;
           await partenaire.save();
 
@@ -55,19 +56,33 @@ const ajouterRemboursement = async (req, res) => {
             remboursement,
           });
         } else {
-          res.status(201).json({
-            message: "Bénéfice envoyé avec succès.",
-            remboursement,
-          });
+          return res
+            .status(400)
+            .json({ message: "Le solde dans la caisse est insuffisant." });
         }
       } else {
-        return res
-          .status(400)
-          .json({ message: "Le solde dans la caisse est insuffisant." });
+        return res.status(400).json({
+          message: "Le montant saisi est supérieur au montant restant.",
+        });
       }
-    } else {
-      return res.status(400).json({
-        message: "Le montant saisi est supérieur au montant restant.",
+    } else if (type === "BÉNÉFICE") {
+
+      const remboursement = await Rembourser.create({
+        utilisateurId,
+        partenaireId,
+        date_creation,
+        montant_gnf: montant_due,
+        montant,
+        nom,
+        type,
+        prix: prixInt,
+      });
+
+      partenaire.montant_preter = (partenaire.montant_preter || 0) + montant;
+      await partenaire.save();
+      res.status(201).json({
+        message: "Bénéfice ajouté avec succès.",
+        remboursement,
       });
     }
   } catch (error) {
