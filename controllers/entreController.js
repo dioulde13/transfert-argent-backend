@@ -142,17 +142,32 @@ const ajouterEntre = async (req, res) => {
         telephone_receveur,
       });
 
-      // Mettre à jour le montant_prêter du partenaire
-      partenaire.montant_preter =
-        (partenaire.montant_preter || 0) + montant_cfa;
-      await partenaire.save();
+      if (PaysDest === "Guinée-Bissau") {
+        partenaire.montant_preter =
+          (partenaire.montant_preter || 0) - montant_cfa;
+        await partenaire.save();
 
-      res.status(201).json({
-        message: "Entrée créée avec succès.",
-        entre,
-        solde: utilisateur.solde,
-        montant_preter: partenaire.montant_preter,
-      });
+        // utilisateur.solde = Number(utilisateur.solde || 0) + Number(montant_due);
+        // await utilisateur.save();
+
+        res.status(201).json({
+          message: "Entrée créée avec succès.",
+          entre,
+          solde: utilisateur.solde,
+          montant_preter: partenaire.montant_preter,
+        });
+      } else {
+        partenaire.montant_preter =
+          (partenaire.montant_preter || 0) + montant_cfa;
+        await partenaire.save();
+
+        res.status(201).json({
+          message: "Entrée créée avec succès.",
+          entre,
+          solde: utilisateur.solde,
+          montant_preter: partenaire.montant_preter,
+        });
+      }
     } else {
       res.status(400).json({
         message:
@@ -167,7 +182,7 @@ const ajouterEntre = async (req, res) => {
 
 const ajouterAutreEntre = async (req, res) => {
   try {
-    const { utilisateurId, nomCLient, montantClient ,date_creation} = req.body;
+    const { utilisateurId, nomCLient, montantClient, date_creation } = req.body;
 
     // Vérifier si tous les champs obligatoires sont présents
     if (!utilisateurId || !nomCLient || !montantClient || !date_creation) {
