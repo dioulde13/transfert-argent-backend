@@ -3,10 +3,10 @@ const Utilisateur = require("../models/utilisateurs");
 
 const ajouterCredit = async (req, res) => {
   try {
-    const { utilisateurId, type, nom, montant, date_creation } = req.body;
+    const { utilisateurId, type, nom, montant, date_creation, status } = req.body;
 
     // Vérification des champs requis
-    if (!utilisateurId || !nom || !type || !montant || !date_creation) {
+    if (!utilisateurId || !nom || !type || !montant || !date_creation || !status) {
       return res.status(400).json({ message: "Tous les champs sont obligatoires." });
     }
 
@@ -47,19 +47,37 @@ const ajouterCredit = async (req, res) => {
     let credit;
 
     if (type === "SORTIE") {
-      if (utilisateur.solde < montant) {
-        return res.status(400).json({ message: "Solde insuffisant." });
+      if (status === "IV") {
+        if (utilisateur.soldePDV < montant) {
+          return res.status(400).json({ message: "Solde insuffisant." });
+        } else {
+          credit = await Credit.create({
+            utilisateurId,
+            nom,
+            type,
+            date_creation,
+            reference: newCode,
+            montant,
+            status
+          });
+          utilisateur.soldePDV -= montant;
+          utilisateur.solde -= montant;
+        }
       } else {
-        credit = await Credit.create({
-          utilisateurId,
-          nom,
-          type,
-          date_creation,
-          reference: newCode,
-          montant,
-        });
-
-        utilisateur.solde -= montant;
+        if (utilisateur.solde < montant) {
+          return res.status(400).json({ message: "Solde insuffisant." });
+        } else {
+          credit = await Credit.create({
+            utilisateurId,
+            nom,
+            type,
+            date_creation,
+            reference: newCode,
+            montant,
+            status
+          });
+          utilisateur.solde -= montant;
+        }
       }
     } else if (type === "ENTRE") {
       credit = await Credit.create({
@@ -69,16 +87,16 @@ const ajouterCredit = async (req, res) => {
         date_creation,
         reference: newCode,
         montant,
+        status
       });
-
+      if (status === "IV") {
+        utilisateur.soldePDV += montant;
+      }
       utilisateur.solde += montant;
-
     } else {
       return res.status(400).json({ message: "Type de crédit invalide." });
     }
-
     await utilisateur.save();
-
     return res.status(201).json({
       message: "Crédit ajouté avec succès.",
       credit,
