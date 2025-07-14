@@ -7,15 +7,35 @@ const { Sequelize } = require('sequelize');
 
 const ajouterCaisse = async (req, res) => {
   try {
-    const { utilisateurId, prix_dollar, prix_euro, solde_cfa, prix_cfa, solde_dollars, solde_euro, solde_gnf } = req.body;
+    const {
+      utilisateurId,
+      prix_dollar,
+      prix_euro,
+      solde_cfa,
+      prix_cfa,
+      solde_dollars,
+      solde_euro,
+      solde_gnf
+    } = req.body;
 
-    // Vérifier si tous les champs nécessaires sont fournis
-    if (!utilisateurId || !prix_dollar || !prix_euro || !solde_cfa || !prix_cfa || !solde_dollars || !solde_euro || !solde_gnf) {
+    // Liste des champs à vérifier
+    const champs = [
+      utilisateurId,
+      prix_dollar,
+      prix_euro,
+      solde_cfa,
+      prix_cfa,
+      solde_dollars,
+      solde_euro,
+      solde_gnf
+    ];
+
+    // Vérifie si un des champs est undefined ou null (0 est accepté)
+    if (champs.some(champ => champ === undefined || champ === null)) {
       return res.status(400).json({ message: 'Tous les champs sont obligatoires.' });
     }
 
-
-    // Créer un nouveau partenaire
+    // Création de la caisse
     const caisse = await VerifierCaisse.create({
       utilisateurId,
       solde_dollars,
@@ -24,20 +44,20 @@ const ajouterCaisse = async (req, res) => {
       solde_gnf,
       prix_dollar,
       prix_euro,
-      solde_cfa,
-      prix_cfa
+      prix_cfa,
     });
 
     res.status(201).json({
-      message: 'Caisse ajouté avec succès.',
+      message: 'Caisse ajoutée avec succès.',
       caisse,
     });
+
   } catch (error) {
-    console.error('Erreur lors de l\'ajout du partenaire :', error);
+    console.error("Erreur lors de l'ajout de la caisse :", error);
     res.status(500).json({ message: 'Erreur interne du serveur.' });
   }
 };
-
+ 
 const listeCaisse = async (req, res) => {
   try {
     // Récupérer tous les partenaires avec les informations de l'utilisateur associé
