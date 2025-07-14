@@ -4,7 +4,7 @@ const Credit = require('../models/credit');
 
 const ajouterPayementCredit = async (req, res) => {
     try {
-        const { utilisateurId, reference, montant , date_creation} = req.body;
+        const { utilisateurId, reference, montant, date_creation } = req.body;
 
         // Vérification de la validité des données reçues
         if (!utilisateurId || !reference || !montant || !date_creation) {
@@ -22,63 +22,62 @@ const ajouterPayementCredit = async (req, res) => {
         if (!credit) {
             return res.status(404).json({ message: "Crédit introuvable avec cette référence." });
         }
-    if (utilisateur.solde >= montant) {
-        // Calcul du montant total payé après le paiement actuel
-        const montantEnCoursPayement = (credit.montantPaye || 0) + montant;
+        if (utilisateur.solde >= montant) {
+            // Calcul du montant total payé après le paiement actuel
+            const montantEnCoursPayement = (credit.montantPaye || 0) + montant;
 
-        // Vérification de dépassement
-        if (montantEnCoursPayement > credit.montant) {
-            const montantRestant = credit.montant - (credit.montantPaye || 0);
-            return res.status(400).json({
-                message: `Le montant payé (${montant.toLocaleString("fr-FR")} GNF) dépasse le montant restant (${montantRestant.toLocaleString("fr-FR")} GNF).`,
+            // Vérification de dépassement
+            if (montantEnCoursPayement > credit.montant) {
+                const montantRestant = credit.montant - (credit.montantPaye || 0);
+                return res.status(400).json({
+                    message: `Le montant payé (${montant.toLocaleString("fr-FR")} GNF) dépasse le montant restant (${montantRestant.toLocaleString("fr-FR")} GNF).`,
+                });
+            }
+
+            // Mise à jour des montants payés et restants
+            credit.montantPaye = montantEnCoursPayement;
+            credit.montantRestant = credit.montant - credit.montantPaye;
+
+            // Création du paiement
+            const paiement = await PayementCreadit.create({
+                utilisateurId,
+                creditId: credit.id,
+                date_creation,
+                reference,
+                montant
+             });
+
+            // Mise à jour du solde selon le type de paiement
+            if (credit.type === "ENTRE") {
+                utilisateur.solde = (utilisateur.solde || 0) - montant;
+            } else if (credit.type === "SORTIE") {
+                utilisateur.solde = (utilisateur.solde || 0) + montant;
+            } else {
+                return res.status(400).json({ message: "Type de paiement invalide (doit être ENTRE ou SORTIE)." });
+            }
+
+            // Sauvegarde des mises à jour
+            await utilisateur.save();
+            await credit.save();
+
+            // Réponse en cas de succès
+            return res.status(201).json({
+                message: "Paiement ajouté avec succès.",
+                paiement,
             });
-        }
-
-        // Mise à jour des montants payés et restants
-        credit.montantPaye = montantEnCoursPayement;
-        credit.montantRestant = credit.montant - credit.montantPaye;
-
-        // Création du paiement
-        const paiement = await PayementCreadit.create({
-            utilisateurId,
-            creditId: credit.id,
-            date_creation,
-            reference,
-            montant,
-        });
-
-        // Mise à jour du solde selon le type de paiement
-        if (credit.type === "ENTRE") {
-            utilisateur.solde = (utilisateur.solde || 0) - montant;
-        } else if (credit.type === "SORTIE") {
-            utilisateur.solde = (utilisateur.solde || 0) + montant;
         } else {
-            return res.status(400).json({ message: "Type de paiement invalide (doit être ENTRE ou SORTIE)." });
-        }
-
-        // Sauvegarde des mises à jour
-        await utilisateur.save();
-        await credit.save();
-
-        // Réponse en cas de succès
-        return res.status(201).json({
-            message: "Paiement ajouté avec succès.",
-            paiement,
-        });
-        }
-        else {
             const solde = Number(utilisateur.solde);
             res.status(400).json({
-              message: `On ne peut pas faire une sortie de ${montant.toLocaleString(
-                "fr-FR",
-                { minimumFractionDigits: 0, maximumFractionDigits: 0 }
-              )} GNF,
+                message: `On ne peut pas faire une sortie de ${montant.toLocaleString(
+                    "fr-FR",
+                    { minimumFractionDigits: 0, maximumFractionDigits: 0 }
+                )} GNF,
             le solde dans la caisse est: ${solde.toLocaleString("fr-FR", {
-                minimumFractionDigits: 0,
-                maximumFractionDigits: 0,
-              })} GNF`,
+                    minimumFractionDigits: 0,
+                    maximumFractionDigits: 0,
+                })} GNF`,
             });
-          }
+        }
 
     } catch (error) {
         console.error("Erreur dans ajouterPayementCredit:", error);

@@ -54,8 +54,10 @@ const ajouterPayement = async (req, res) => {
           });
 
           utilisateur.solde = (utilisateur.solde || 0) + montant;
+          if (entre.type_payement === "ORANGE MONEY") {
+            utilisateur.soldePDV = (utilisateur.soldePDV || 0) + montant;
+          }
           await utilisateur.save();
-
           if (entre.montant_restant === 0) {
             entre.status = "PAYEE";
           } else if (entre.montant_payer < entre.montant_gnf) {
@@ -595,6 +597,8 @@ const listerPayement = async (req, res) => {
             "montant_cfa",
             "montant_payer",
             "montant_restant",
+            "type_payement",
+            "telephone_receveur",
           ],
         },
         {
