@@ -57,6 +57,7 @@ const ajouterEntre = async (req, res) => {
       date_creation,
       montant_cfa,
       montant,
+      prix,
       type_payement,
       telephone_receveur,
     } = req.body;
@@ -70,8 +71,9 @@ const ajouterEntre = async (req, res) => {
       !code_envoyer ||
       !expediteur || 
       !receveur ||
-      !type_payement ||
+      !type_payement || 
       !montant_cfa ||
+      !prix ||
       !telephone_receveur
     ) {
       return res.status(400).json({
@@ -98,7 +100,7 @@ const ajouterEntre = async (req, res) => {
     }
 
     const Prix1 = devise.prix_1 || 0;
-    const Prix2 = devise.prix_2 || 0;
+    const Prix2 = prix || 0;
     const Sign1 = devise.signe_1;
     const Sign2 = devise.signe_2;
     const PaysDest = devise.paysArriver;

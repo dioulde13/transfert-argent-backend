@@ -99,8 +99,13 @@ const Entre = sequelize.define("Entre", {
     type: DataTypes.BIGINT,
     allowNull: false,
     defaultValue: 0,
-  },
+  }, 
   prix_2: {
+    type: DataTypes.BIGINT,
+    allowNull: false,
+    defaultValue: 0,
+  },
+  prix: {
     type: DataTypes.BIGINT,
     allowNull: false,
     defaultValue: 0,
