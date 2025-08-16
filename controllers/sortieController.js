@@ -184,6 +184,64 @@ const ajouterSortie = async (req, res) => {
   }
 };
 
+
+const modifierSortie = async (req, res) => {
+  try {
+    const {
+      partenaireId,
+      expediteur,
+      receveur,
+      codeEnvoyer,
+      date_creation,
+      montant,
+      frais,
+      prix_2,
+      type_payement,
+      telephone_receveur,
+    } = req.body;
+
+    const { id } = req.params;
+
+    // Vérifier si l'entrée existe
+    const sortie = await Sortie.findByPk(id);
+    if (!sortie) {
+      return res.status(404).json({ message: "Entrée introuvable." });
+    }
+
+
+    // Vérifier le partenaire
+    const partenaire = await Partenaire.findByPk(partenaireId);
+    if (!partenaire) {
+      return res.status(404).json({ message: "Partenaire introuvable." });
+    }
+
+    const montant_due = (montant / sortie.prix_1) * prix_2;
+
+    // Mise à jour des infos
+    await sortie.update({
+      partenaireId,
+      codeEnvoyer,
+      expediteur,
+      montant,
+      frais,
+      date_creation,
+      receveur,
+      type_payement,
+      montant_gnf: montant_due,
+      prix_2,
+      telephone_receveur,
+    });
+
+    res.status(200).json({
+      message: "Sorties modifiée avec succès.",
+      sortie,
+    });
+  } catch (error) {
+    console.error("Erreur lors de la modification :", error);
+    res.status(500).json({ message: "Erreur interne du serveur." });
+  }
+};
+
 const ajouterAutreSortie = async (req, res) => {
   try {
     const { utilisateurId, nomCLient, montantClient, date_creation } = req.body;
@@ -472,5 +530,6 @@ module.exports = {
   annulerSortie,
   validerSortie,
   ajouterAutreSortie,
-  payerSorties
+  payerSorties,
+  modifierSortie
 };

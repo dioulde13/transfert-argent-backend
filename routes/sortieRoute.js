@@ -21,4 +21,6 @@ router.put("/valider/:code", sortieController.validerSortie);
 
 router.post('/payer', sortieController.payerSorties);
 
+router.put("/modifier/:id", sortieController.modifierSortie);
+
 module.exports = router;
