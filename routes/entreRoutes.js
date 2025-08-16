@@ -18,4 +18,7 @@ router.put('/annuler/:code', entreController.annulerEntre);
 
 router.post('/payer', entreController.payerEntrees);
 
+router.put("/modifier/:id", entreController.modifierEntre);
+
+
 module.exports = router;

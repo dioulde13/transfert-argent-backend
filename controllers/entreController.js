@@ -142,6 +142,7 @@ const ajouterEntre = async (req, res) => {
         signe_1: Sign1,
         signe_2: Sign2,
         montant_cfa: montant_cfa || 0,
+        prix,
         prix_1: Prix1,
         prix_2: Prix2,
         telephone_receveur,
@@ -151,9 +152,6 @@ const ajouterEntre = async (req, res) => {
         partenaire.montant_preter =
           (partenaire.montant_preter || 0) - montant_cfa;
         await partenaire.save();
-
-        // utilisateur.solde = Number(utilisateur.solde || 0) + Number(montant_due);
-        // await utilisateur.save();
 
         res.status(201).json({
           message: "Entrée créée avec succès.",
@@ -181,6 +179,65 @@ const ajouterEntre = async (req, res) => {
     }
   } catch (error) {
     console.error("Erreur lors de l'ajout de l'entrée :", error);
+    res.status(500).json({ message: "Erreur interne du serveur." });
+  }
+};
+
+
+const modifierEntre = async (req, res) => {
+  try {
+    const {
+      partenaireId,
+      expediteur,
+      receveur,
+      code_envoyer,
+      date_creation,
+      montant_cfa,
+      montant,
+      prix,
+      type_payement,
+      telephone_receveur,
+    } = req.body;
+
+    const { id } = req.params;
+
+    // Vérifier si l'entrée existe
+    const entre = await Entre.findByPk(id);
+    if (!entre) {
+      return res.status(404).json({ message: "Entrée introuvable." });
+    }
+
+
+    // Vérifier le partenaire
+    const partenaire = await Partenaire.findByPk(partenaireId);
+    if (!partenaire) {
+      return res.status(404).json({ message: "Partenaire introuvable." });
+    }
+
+    const montant_due = (montant_cfa / entre.prix_1) * prix;
+
+    // Mise à jour des infos
+    await entre.update({
+      partenaireId,
+      code_envoyer,
+      expediteur,
+      montant,
+      date_creation,
+      receveur,
+      type_payement,
+      montant_gnf: montant_due,
+      montant_cfa,
+      prix,
+      prix_2: prix,
+      telephone_receveur,
+    });
+
+    res.status(200).json({
+      message: "Entrée modifiée avec succès.",
+      entre,
+    });
+  } catch (error) {
+    console.error("Erreur lors de la modification :", error);
     res.status(500).json({ message: "Erreur interne du serveur." });
   }
 };
@@ -914,4 +971,5 @@ module.exports = {
   compterEntreesDuJour,
   annulerEntre,
   payerEntrees,
+  modifierEntre
 };
