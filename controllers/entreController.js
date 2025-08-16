@@ -194,7 +194,7 @@ const modifierEntre = async (req, res) => {
       date_creation,
       montant_cfa,
       montant,
-      prix,
+      prix_2,
       type_payement,
       telephone_receveur,
     } = req.body;
@@ -214,7 +214,7 @@ const modifierEntre = async (req, res) => {
       return res.status(404).json({ message: "Partenaire introuvable." });
     }
 
-    const montant_due = (montant_cfa / entre.prix_1) * prix;
+    const montant_due = (montant_cfa / entre.prix_1) * prix_2;
 
     // Mise à jour des infos
     await entre.update({
@@ -227,8 +227,7 @@ const modifierEntre = async (req, res) => {
       type_payement,
       montant_gnf: montant_due,
       montant_cfa,
-      prix,
-      prix_2: prix,
+      prix_2,
       telephone_receveur,
     });
 
