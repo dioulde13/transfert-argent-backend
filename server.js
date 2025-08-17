@@ -94,7 +94,7 @@ app.use("/api/auth", authRoutes);
 
 // Sequelize sync
 sequelize
-  .sync({ alter: true }) // Remettre force: true si besoin
+  .sync({ alter: true }) // Remettre  force: true si besoin
   .then(() => console.log("Tables créées avec succès"))
   .catch((error) => console.error("Erreur création tables :", error));
 
