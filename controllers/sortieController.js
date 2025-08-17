@@ -217,6 +217,11 @@ const modifierSortie = async (req, res) => {
 
     const montant_due = (montant / sortie.prix_1) * prix_2;
 
+    const ancienMontantCfa = sortie.montant;
+
+    console.log(ancienMontantCfa);
+    console.log(montant);
+
     // Mise à jour des infos
     await sortie.update({
       partenaireId,
@@ -231,6 +236,10 @@ const modifierSortie = async (req, res) => {
       prix_2,
       telephone_receveur,
     });
+
+    partenaire.montant_preter = (partenaire.montant_preter || 0) - ancienMontantCfa + montant;
+
+    await partenaire.save();
 
     res.status(200).json({
       message: "Sorties modifiée avec succès.",
@@ -315,7 +324,7 @@ const ajouterAutreSortie = async (req, res) => {
 const validerSortie = async (req, res) => {
   try {
     const { code } = req.params; // Récupération du code depuis l'URL
-    const { utilisateurId, partenaireId, prix_2 ,type_payement} = req.body;
+    const { utilisateurId, partenaireId, prix_2, type_payement } = req.body;
 
     // Vérifier si la sortie existe en fonction du code
     const sortie = await Sortie.findOne({ where: { code } });

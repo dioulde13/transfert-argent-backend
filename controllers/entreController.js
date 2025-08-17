@@ -69,9 +69,9 @@ const ajouterEntre = async (req, res) => {
       !deviseId ||
       !date_creation ||
       !code_envoyer ||
-      !expediteur || 
+      !expediteur ||
       !receveur ||
-      !type_payement || 
+      !type_payement ||
       !montant_cfa ||
       !prix ||
       !telephone_receveur
@@ -207,16 +207,19 @@ const modifierEntre = async (req, res) => {
       return res.status(404).json({ message: "Entrée introuvable." });
     }
 
-
     // Vérifier le partenaire
     const partenaire = await Partenaire.findByPk(partenaireId);
     if (!partenaire) {
       return res.status(404).json({ message: "Partenaire introuvable." });
     }
 
+    // Calcul du montant en GNF
     const montant_due = (montant_cfa / entre.prix_1) * prix_2;
 
-    // Mise à jour des infos
+    // Sauvegarder l'ancien montant CFA (avant modification)
+    const ancienMontantCfa = entre.montant_cfa;
+
+    // Mise à jour des infos de l'entrée
     await entre.update({
       partenaireId,
       code_envoyer,
@@ -231,15 +234,26 @@ const modifierEntre = async (req, res) => {
       telephone_receveur,
     });
 
-    res.status(200).json({
+    // Ajustement du montant_preter du partenaire
+    if (entre.pays_dest === "Guinée-Bissau") {
+      // Annuler l'ancien montant puis appliquer le nouveau
+      partenaire.montant_preter = (partenaire.montant_preter || 0) + ancienMontantCfa - montant_cfa;
+    } else {
+      partenaire.montant_preter = (partenaire.montant_preter || 0) - ancienMontantCfa + montant_cfa;
+    }
+
+    await partenaire.save();
+
+    return res.status(200).json({
       message: "Entrée modifiée avec succès.",
       entre,
     });
   } catch (error) {
     console.error("Erreur lors de la modification :", error);
-    res.status(500).json({ message: "Erreur interne du serveur." });
+    return res.status(500).json({ message: "Erreur interne du serveur." });
   }
 };
+
 
 const ajouterAutreEntre = async (req, res) => {
   try {
