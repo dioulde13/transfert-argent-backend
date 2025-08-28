@@ -10,7 +10,7 @@ const Utilisateur = sequelize.define('Utilisateur', {
   date_creation: {
     type: DataTypes.DATE,
     allowNull: false,
-    defaultValue: DataTypes.NOW, // Définit la date et l'heure actuelles par défaut
+    defaultValue: DataTypes.NOW,
   },
   nom: {
     type: DataTypes.STRING,
@@ -20,18 +20,6 @@ const Utilisateur = sequelize.define('Utilisateur', {
     type: DataTypes.STRING,
     allowNull: false,
   },
-  // sign: {
-  //   type: DataTypes.STRING,
-  //   allowNull: false,
-  // },
-  // sign_dollar: {
-  //   type: DataTypes.STRING,
-  //   allowNull: false,
-  // },
-  // sign_euro: {
-  //   type: DataTypes.STRING,
-  //   allowNull: false,
-  // },
   telephone: {
     type: DataTypes.STRING,
     allowNull: false,
@@ -51,6 +39,11 @@ const Utilisateur = sequelize.define('Utilisateur', {
     allowNull: false,
     defaultValue: 0,
   },
+  soldeXOF: {
+    type: DataTypes.BIGINT,
+    allowNull: true,
+    defaultValue: 0, 
+  },
   encien_solde: {
     type: DataTypes.BIGINT,
     allowNull: false,
@@ -67,12 +60,12 @@ const Utilisateur = sequelize.define('Utilisateur', {
   role: {
     type: DataTypes.ENUM('ADMIN', 'UTILISATEUR'),
     allowNull: false,
-    defaultValue: 'ADMIN', // Définir une valeur par défaut
+    defaultValue: 'ADMIN',
   },
   btEnabled: {
     type: DataTypes.BOOLEAN,
-    allowNull: false, // Indique que la valeur ne peut pas être nulle
-    defaultValue: true, // Vous pouvez définir une valeur par défaut (true ou false)
+    allowNull: false,
+    defaultValue: true,
   },
 });
 

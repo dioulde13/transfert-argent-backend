@@ -110,25 +110,29 @@ const Sortie = sequelize.define("Sortie", {
     type: DataTypes.STRING,
     allowNull: false,
   },
+  mode_payement_devise: {
+    type: DataTypes.ENUM("GNF", "XOF"),
+    allowNull: true,
+  },
   payement_type: {
     type: DataTypes.ENUM("COMPLET", "NON COMPLET"),
     allowNull: false,
-    defaultValue: "NON COMPLET",  
+    defaultValue: "NON COMPLET",
   },
-   etat: {
+  etat: {
     type: DataTypes.ENUM("VALIDÉE", "NON VALIDÉE"),
     allowNull: false,
-    defaultValue: "NON VALIDÉE",  
+    defaultValue: "NON VALIDÉE",
   },
   type_payement: {
     type: DataTypes.ENUM("OM", "CASH"),
     allowNull: false,
-    defaultValue: "CASH",  
+    defaultValue: "CASH",
   },
   status: {
     type: DataTypes.ENUM("NON PAYEE", "PAYEE", "EN COURS", "ANNULEE"),
     allowNull: false,
-    defaultValue: "NON PAYEE", 
+    defaultValue: "NON PAYEE",
   },
   type: {
     type: DataTypes.ENUM("R", "NON R"),

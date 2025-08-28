@@ -125,7 +125,6 @@ const ajouterPayement = async (req, res) => {
           } else {
             entre.montant_payer = (entre.montant_payer ?? 0) + montantDeviseGnf;
             entre.montant_restant = (entre.montant_gnf ?? 0) - entre.montant_payer;
-            // Ajouter une entrée dans la table Payement
             const payement = await Payement.create({
               utilisateurId,
               entreId: entre.id, // Inclure entreId
@@ -137,11 +136,9 @@ const ajouterPayement = async (req, res) => {
               signe
             });
 
-            // Mettre à jour le solde de l'utilisateur connecté
             utilisateur.solde = (utilisateur.solde || 0) + montantDeviseGnf;
             await utilisateur.save();
 
-            // Vérification du montant restant pour définir le type de paiement
             if (entre.montant_restant === 0) {
               entre.status = "PAYEE";
             } else if (entre.montant_payer < entre.montant_gnf) {
@@ -209,32 +206,68 @@ const ajouterPayement = async (req, res) => {
 
       if (sortie.etat === "VALIDÉE") {
         if (prix === 0) {
-          if (Number(utilisateur.solde) >= Number(montant)) {
-            const montantEnCoursPayement = Number(montant) + Number(sortie.montant_payer);
-            if (montantEnCoursPayement > Number(sortie.montant_gnf)) {
-              const montantGnf = Number(sortie.montant_gnf);
-              const montantRestant = Number(sortie.montant_restant);
-              res.status(400).json({
-                message: `Le montant payé ${montant.toLocaleString("fr-FR", {
-                  minimumFractionDigits: 0,
-                  maximumFractionDigits: 0,
-                })} GNF, est supérieur au montant restant qui est: ${Number(sortie.montant_payer) === 0
-                  ?
-                  montantGnf.toLocaleString("fr-FR", {
+          if (sortie.mode_payement_devise === 'GNF') {
+            if (Number(utilisateur.solde) >= Number(montant)) {
+              const montantEnCoursPayement = Number(montant) + Number(sortie.montant_payer);
+              if (montantEnCoursPayement > Number(sortie.montant_gnf)) {
+                const montantGnf = Number(sortie.montant_gnf);
+                const montantRestant = Number(sortie.montant_restant);
+                res.status(400).json({
+                  message: `Le montant payé ${montant.toLocaleString("fr-FR", {
                     minimumFractionDigits: 0,
                     maximumFractionDigits: 0,
-                  })
-                  :
-                  montantRestant.toLocaleString("fr-FR", {
-                    minimumFractionDigits: 0,
-                    maximumFractionDigits: 0,
-                  })
-                  } GNF`,
-              });
-            } else {
+                  })} GNF, est supérieur au montant restant qui est: ${Number(sortie.montant_payer) === 0
+                    ?
+                    montantGnf.toLocaleString("fr-FR", {
+                      minimumFractionDigits: 0,
+                      maximumFractionDigits: 0,
+                    })
+                    :
+                    montantRestant.toLocaleString("fr-FR", {
+                      minimumFractionDigits: 0,
+                      maximumFractionDigits: 0,
+                    })
+                    } GNF`,
+                });
+              } else {
 
-              if (sortie.type_payement === "OM") {
-                if (utilisateur.soldePDV >= Number(montant)) {
+                if (sortie.type_payement === "OM") {
+                  if (utilisateur.soldePDV >= Number(montant)) {
+                    sortie.montant_payer = Number(sortie.montant_payer ?? 0) + Number(montant);
+                    sortie.montant_restant = Number(sortie.montant_gnf ?? 0) - Number(sortie.montant_payer);
+
+                    // Ajouter une entrée dans la table Payement
+                    const payement = await Payement.create({
+                      utilisateurId,
+                      sortieId: sortie.id, // Inclure entreId
+                      code: code, // Inclure entreId
+                      date_creation,
+                      montant,
+                      type,
+                    });
+
+                    utilisateur.soldePDV = Number(utilisateur.soldePDV || 0) - Number(montant);
+                    // Mettre à jour le solde de l'utilisateur connecté
+                    utilisateur.solde = Number(utilisateur.solde || 0) - Number(montant);
+                    await utilisateur.save();
+
+                    if (Number(sortie.montant_restant) === 0) {
+                      sortie.status = "PAYEE";
+                    } else if (Number(sortie.montant_payer) < Number(sortie.montant_gnf)) {
+                      sortie.status = "EN COURS";
+                    }
+
+                    await sortie.save();
+                    res.status(201).json({
+                      message: "Payement ajouté avec succès.",
+                      payement,
+                    });
+                  } else {
+                    return res
+                      .status(400)
+                      .json({ message: `Solde pdv insuffisant qui est: ${Number(utilisateur.soldePDV)}` });
+                  }
+                } else {
                   sortie.montant_payer = Number(sortie.montant_payer ?? 0) + Number(montant);
                   sortie.montant_restant = Number(sortie.montant_gnf ?? 0) - Number(sortie.montant_payer);
 
@@ -248,7 +281,6 @@ const ajouterPayement = async (req, res) => {
                     type,
                   });
 
-                  utilisateur.soldePDV = Number(utilisateur.soldePDV || 0) - Number(montant);
                   // Mettre à jour le solde de l'utilisateur connecté
                   utilisateur.solde = Number(utilisateur.solde || 0) - Number(montant);
                   await utilisateur.save();
@@ -264,57 +296,82 @@ const ajouterPayement = async (req, res) => {
                     message: "Payement ajouté avec succès.",
                     payement,
                   });
-                } else {
-                  return res
-                    .status(400)
-                    .json({ message: `Solde pdv insuffisant qui est: ${Number(utilisateur.soldePDV)}` });
                 }
+              }
+            } else {
+              const solde = Number(utilisateur.solde);
+              res.status(400).json({
+                message: `On ne peut pas faire un payement de ${montant.toLocaleString(
+                  "fr-FR",
+                  { minimumFractionDigits: 0, maximumFractionDigits: 0 }
+                )} GNF, le solde dans la caisse est: ${solde.toLocaleString(
+                  "fr-FR",
+                  {
+                    minimumFractionDigits: 0,
+                    maximumFractionDigits: 0,
+                  }
+                )} GNF`,
+              });
+            }
+          } else if (sortie.mode_payement_devise === 'XOF') {
+            if (utilisateur.soldeXOF > montant) {
+              const montantEnCoursPayement = Number(montant) + Number(sortie.montant_payer);
+              if (montantEnCoursPayement > Number(sortie.montant)) {
+                const montantRestant = Number(sortie.montant_restant);
+                res.status(400).json({
+                  message: `Le montant payé ${montant.toLocaleString("fr-FR", {
+                    minimumFractionDigits: 0,
+                    maximumFractionDigits: 0,
+                  })} GNF, est supérieur au montant restant qui est: ${Number(sortie.montant_payer) === 0
+                    ?
+                    montant.toLocaleString("fr-FR", {
+                      minimumFractionDigits: 0,
+                      maximumFractionDigits: 0,
+                    })
+                    :
+                    montantRestant.toLocaleString("fr-FR", {
+                      minimumFractionDigits: 0,
+                      maximumFractionDigits: 0,
+                    })
+                    } GNF`,
+                });
               } else {
                 sortie.montant_payer = Number(sortie.montant_payer ?? 0) + Number(montant);
-                sortie.montant_restant = Number(sortie.montant_gnf ?? 0) - Number(sortie.montant_payer);
-
-                // Ajouter une entrée dans la table Payement
+                sortie.montant_restant = Number(sortie.montant ?? 0) - Number(sortie.montant_payer);
                 const payement = await Payement.create({
                   utilisateurId,
-                  sortieId: sortie.id, // Inclure entreId
-                  code: code, // Inclure entreId
+                  sortieId: sortie.id,
+                  code: code,
                   date_creation,
                   montant,
                   type,
                 });
 
-                // Mettre à jour le solde de l'utilisateur connecté
-                utilisateur.solde = Number(utilisateur.solde || 0) - Number(montant);
+                utilisateur.soldeXOF = Number(utilisateur.soldeXOF || 0) - Number(montant);
                 await utilisateur.save();
-
-                if (Number(sortie.montant_restant) === 0) {
-                  sortie.status = "PAYEE";
-                } else if (Number(sortie.montant_payer) < Number(sortie.montant_gnf)) {
-                  sortie.status = "EN COURS";
-                }
-
+                sortie.status = "PAYEE";
                 await sortie.save();
                 res.status(201).json({
                   message: "Payement ajouté avec succès.",
                   payement,
                 });
               }
+            } else {
+              const solde = Number(utilisateur.soldeXOF);
+              res.status(400).json({
+                message: `On ne peut pas faire un payement de ${montant.toLocaleString(
+                  "fr-FR",
+                  { minimumFractionDigits: 0, maximumFractionDigits: 0 }
+                )} GNF, le solde dans la caisse est: ${solde.toLocaleString(
+                  "fr-FR",
+                  {
+                    minimumFractionDigits: 0,
+                    maximumFractionDigits: 0,
+                  }
+                )} GNF`,
+              });
             }
-          } else {
-            const solde = Number(utilisateur.solde);
-            // console.log(solde);
-            res.status(400).json({
-              message: `On ne peut pas faire un payement de ${montant.toLocaleString(
-                "fr-FR",
-                { minimumFractionDigits: 0, maximumFractionDigits: 0 }
-              )} GNF, le solde dans la caisse est: ${solde.toLocaleString(
-                "fr-FR",
-                {
-                  minimumFractionDigits: 0,
-                  maximumFractionDigits: 0,
-                }
-              )} GNF`,
-            });
+
           }
         }
         else if (signe === "EURO") {
@@ -610,6 +667,7 @@ const listerPayement = async (req, res) => {
             "expediteur",
             "pays_exp",
             "receveur",
+            "mode_payement_devise",
             "type_payement",
             "telephone_receveur",
             "montant",

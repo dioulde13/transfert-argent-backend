@@ -74,6 +74,7 @@ const ajouterSortie = async (req, res) => {
       expediteur,
       codeEnvoyer,
       frais,
+      mode_payement_devise,
       date_creation,
       receveur,
       montant,
@@ -87,6 +88,7 @@ const ajouterSortie = async (req, res) => {
       !frais ||
       !deviseId ||
       !expediteur ||
+      !mode_payement_devise ||
       !codeEnvoyer ||
       !receveur ||
       !montant ||
@@ -113,71 +115,146 @@ const ajouterSortie = async (req, res) => {
       return res.status(404).json({ message: "Devise introuvable." });
     }
 
-    const Prix1 = devise.prix_1 || 0;
-    const Prix2 = devise.prix_2 || 0;
-    const Sign1 = devise.signe_1;
-    const Sign2 = devise.signe_2;
+    if (mode_payement_devise === "GNF") {
+      const Prix1 = devise.prix_1 || 0;
+      const Prix2 = devise.prix_2 || 0;
+      const Sign1 = devise.signe_1;
+      const Sign2 = devise.signe_2;
 
-    const montant_due = (montant / Prix1) * Prix2;
+      const montant_due = (montant / Prix1) * Prix2;
 
-    const lastEntry = await Sortie.findOne({ order: [["id", "DESC"]] });
+      const lastEntry = await Sortie.findOne({ order: [["id", "DESC"]] });
 
-    let newCode = "ABS0001";
+      let newCode = "ABS0001";
 
-    if (lastEntry && lastEntry.code) {
-      const numericPart = parseInt(lastEntry.code.slice(3), 10);
-      if (!isNaN(numericPart)) {
-        newCode = `ABS${(numericPart + 1).toString().padStart(4, "0")}`;
+      if (lastEntry && lastEntry.code) {
+        const numericPart = parseInt(lastEntry.code.slice(3), 10);
+        if (!isNaN(numericPart)) {
+          newCode = `ABS${(numericPart + 1).toString().padStart(4, "0")}`;
+        }
+      }
+
+      if (utilisateur.solde > montant_due) {
+        if (devise.paysArriver === partenaire.pays) {
+          const sortie = await Sortie.create({
+            utilisateurId,
+            partenaireId,
+            deviseId,
+            pays_exp: devise.paysArriver,
+            pays_dest: devise.paysDepart,
+            code: newCode,
+            expediteur,
+            date_creation,
+            codeEnvoyer,
+            frais,
+            telephone_receveur,
+            receveur,
+            mode_payement_devise,
+            montant_gnf: montant_due,
+            signe_1: Sign1,
+            signe_2: Sign2,
+            prix_1: Prix1,
+            prix_2: Prix2,
+            montant: montant,
+          });
+
+          return res.status(201).json({
+            message: "Sortie créée avec succès.",
+            sortie,
+            // montant_preter: partenaire.montant_preter,
+          });
+        } else {
+          res.status(400).json({
+            message: `Le pays de destination ne correspond pas au pays du partenaire.`,
+          });
+        }
+      } else {
+        const solde = Number(utilisateur.solde);
+        res.status(400).json({
+          message: `On ne peut pas faire une sortie de ${montant_due.toLocaleString(
+            "fr-FR",
+            { minimumFractionDigits: 0, maximumFractionDigits: 0 }
+          )} GNF,
+        le solde dans la caisse est: ${solde.toLocaleString("fr-FR", {
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0,
+          })} GNF`,
+        });
+      }
+    } else if (mode_payement_devise === "XOF") {
+      const Prix1 = 0;
+      const Prix2 = 0;
+      const Sign1 = devise.signe_1;
+      const Sign2 = devise.signe_2;
+      console.log("Entre avec success");
+
+      // Comme Prix1 et Prix2 = 0, on évite la division par zéro
+      const montant_due = 0;
+
+      const lastEntry = await Sortie.findOne({ order: [["id", "DESC"]] });
+
+      let newCode = "ABS0001";
+
+      if (lastEntry && lastEntry.code) {
+        const numericPart = parseInt(lastEntry.code.slice(3), 10);
+        if (!isNaN(numericPart)) {
+          newCode = `ABS${(numericPart + 1).toString().padStart(4, "0")}`;
+        }
+      }
+
+      if (utilisateur.soldeXOF > montant) {
+        if (devise.paysArriver === partenaire.pays) {
+          const sortie = await Sortie.create({
+            utilisateurId,
+            partenaireId,
+            deviseId,
+            pays_exp: devise.paysArriver,
+            pays_dest: devise.paysDepart,
+            code: newCode,
+            expediteur,
+            date_creation,
+            codeEnvoyer,
+            frais,
+            telephone_receveur,
+            receveur,
+            mode_payement_devise,
+            montant_gnf: montant_due, // toujours 0
+            signe_1: Sign1,
+            signe_2: Sign2,
+            prix_1: Prix1, // 0
+            prix_2: Prix2, // 0
+            montant: montant,
+            etat: "VALIDÉE", // fixé directement à VALIDÉE
+          });
+
+          partenaire.montant_credit_Xof =
+            (partenaire.montant_credit_Xof || 0) + montant;
+          await partenaire.save();
+
+          return res.status(201).json({
+            message: "Sortie créée avec succès.",
+            sortie,
+          });
+        } else {
+          res.status(400).json({
+            message: `Le pays de destination ne correspond pas au pays du partenaire.`,
+          });
+        }
+      } else {
+        const solde = Number(utilisateur.soldeXOF);
+        res.status(400).json({
+          message: `On ne peut pas faire une sortie de ${montant.toLocaleString(
+            "fr-FR",
+            { minimumFractionDigits: 0, maximumFractionDigits: 0 }
+          )} GNF,
+        le solde dans la caisse est: ${solde.toLocaleString("fr-FR", {
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0,
+          })} GNF`,
+        });
       }
     }
-    // console.log(utilisateur.solde);
-    // console.log(montant_due);
-    // if (utilisateur.solde > montant_due) {
-    if (devise.paysArriver === partenaire.pays) {
-      const sortie = await Sortie.create({
-        utilisateurId,
-        partenaireId,
-        deviseId,
-        pays_exp: devise.paysArriver,
-        pays_dest: devise.paysDepart,
-        code: newCode,
-        expediteur,
-        date_creation,
-        codeEnvoyer,
-        frais,
-        telephone_receveur,
-        receveur,
-        montant_gnf: montant_due,
-        signe_1: Sign1,
-        signe_2: Sign2,
-        prix_1: Prix1,
-        prix_2: Prix2,
-        montant: montant,
-      });
 
-      return res.status(201).json({
-        message: "Sortie créée avec succès.",
-        sortie,
-        // montant_preter: partenaire.montant_preter,
-      });
-    } else {
-      res.status(400).json({
-        message: `Le pays de destination ne correspond pas au pays du partenaire.`,
-      });
-    }
-    // } else {
-    //   const solde = Number(utilisateur.solde);
-    //   res.status(400).json({
-    //     message: `On ne peut pas faire une sortie de ${montant_due.toLocaleString(
-    //       "fr-FR",
-    //       { minimumFractionDigits: 0, maximumFractionDigits: 0 }
-    //     )} GNF,
-    //     le solde dans la caisse est: ${solde.toLocaleString("fr-FR", {
-    //       minimumFractionDigits: 0,
-    //       maximumFractionDigits: 0,
-    //     })} GNF`,
-    //   });
-    // }
   } catch (error) {
     console.error("Erreur lors de l'ajout de la sortie :", error);
     res.status(500).json({ message: "Erreur interne du serveur." });
@@ -374,7 +451,7 @@ const validerSortie = async (req, res) => {
           (partenaire.montant_preter || 0) + sortie.montant;
         await partenaire.save();
         sortie.etat = "VALIDÉE";
-        console.log(type_payement);
+        // console.log(type_payement);
         if (type_payement === "OM") {
           sortie.type_payement = "OM";
         } else {

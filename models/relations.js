@@ -14,6 +14,8 @@ const PartenaireOM = require("./partenaireOM");
 const OrangeMoney = require("./orangeMoney");
 const PayementOM = require("./payementOM");
 const PayementPartenaireOm = require("./payementPartenaireOm");
+const CreancierPartenaire = require("./creancierPartenaire");
+
 
 
 OrangeMoney.belongsTo(PayementOM, { foreignKey: "orangeMoneyId" });
@@ -38,7 +40,7 @@ Utilisateur.hasMany(OrangeMoney, { foreignKey: "utilisateurId" });
 OrangeMoney.belongsTo(Utilisateur, { foreignKey: "utilisateurId" });
 
 Utilisateur.hasMany(OrangeMoney, { foreignKey: "utilisateurId" });
-OrangeMoney.belongsTo(Utilisateur, { foreignKey: "utilisateurId" }); 
+OrangeMoney.belongsTo(Utilisateur, { foreignKey: "utilisateurId" });
 
 Utilisateur.hasMany(PartenaireOM, { foreignKey: "utilisateurId" });
 PartenaireOM.belongsTo(Utilisateur, { foreignKey: "utilisateurId" });
@@ -115,6 +117,13 @@ Rembourser.belongsTo(Utilisateur, { foreignKey: "utilisateurId" });
 // Devise.hasMany(Rembourser, { foreignKey: "deviseId" });
 // Rembourser.belongsTo(Devise, { foreignKey: "deviseId" });
 
+Utilisateur.hasMany(CreancierPartenaire, { foreignKey: "utilisateurId" });
+CreancierPartenaire.belongsTo(Utilisateur, { foreignKey: "utilisateurId" });
+
+
+Partenaire.hasMany(CreancierPartenaire, { foreignKey: "partenaireId" });
+CreancierPartenaire.belongsTo(Partenaire, { foreignKey: "partenaireId" });
+
 // Relation One-to-Many : Un Utilisateur peut avoir plusieurs Entres
 Utilisateur.hasMany(Depense, { foreignKey: "utilisateurId" });
 Depense.belongsTo(Utilisateur, { foreignKey: "utilisateurId" });
@@ -131,6 +140,7 @@ module.exports = {
   Depense,
   Entre,
   Sortie,
+  CreancierPartenaire,
   Partenaire,
   Utilisateur,
   Rembourser,

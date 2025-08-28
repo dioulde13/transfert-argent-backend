@@ -43,7 +43,7 @@ const ajouterPartenaire = async (req, res) => {
 const modifierPartenaire = async (req, res) => {
   try {
     const { id } = req.params; // ID du partenaire à modifier
-    const { utilisateurId, nom, prenom, pays, montant_preter } = req.body;
+    const { utilisateurId, nom, prenom, pays, montant_preter , montant_credit_Xof} = req.body;
 
     // Vérifier si le partenaire existe
     const partenaire = await Partenaire.findByPk(id);
@@ -57,7 +57,8 @@ const modifierPartenaire = async (req, res) => {
       nom: nom || partenaire.nom,
       prenom: prenom || partenaire.prenom,
       pays: pays || partenaire.pays,
-      montant_preter: montant_preter || partenaire.montant_preter
+      montant_preter: montant_preter || partenaire.montant_preter,
+      montant_credit_Xof: montant_credit_Xof || partenaire.montant_credit_Xof
     });
 
     res.status(200).json({

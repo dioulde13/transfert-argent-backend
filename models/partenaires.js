@@ -34,6 +34,11 @@ const Partenaire = sequelize.define('Partenaire', {
     allowNull: false,
     defaultValue: 0,
   },
+   montant_credit_Xof: {
+    type: DataTypes.BIGINT,
+    allowNull: true,
+    defaultValue: 0,
+  },
   montant_credit: {
     type: DataTypes.BIGINT,
     allowNull: false,
