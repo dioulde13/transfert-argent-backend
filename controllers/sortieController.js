@@ -553,22 +553,15 @@ const payerSorties = async (req, res) => {
       return res.status(404).json({ message: "Partenaire sortie introuvable." });
     }
 
-    console.log(partenaireEntre.montant_preter);
-    console.log(partenaireSortie.montant_preter);
-
     const sortiesExistantes = await Sortie.findAll({
       where: { id: ids },
       attributes: ["id", "type", "montant"],
     });
 
-    console.log(sortiesExistantes);
-
-    const totalMontant = sortiesExistantes.reduce((total, sortie) => {
-      return total + sortie.dataValues.montant;
-    }, 0);
-
-    console.log("Total des montants :", totalMontant);
-
+    const totalMontant = sortiesExistantes.reduce(
+      (total, sortie) => total + sortie.dataValues.montant,
+      0
+    );
 
     const dejaPayees = sortiesExistantes.filter((sortie) => sortie.type === "R");
 
@@ -580,26 +573,66 @@ const payerSorties = async (req, res) => {
       });
     }
 
-    if (totalMontant > partenaireSortie.montant_preter) {
+    // Vérifier si le partenaire Sortie a assez (montant_preter + montant_credit_Xof)
+    const totalDisponibleSortie =
+      (partenaireSortie.montant_preter || 0) +
+      (partenaireSortie.montant_credit_Xof || 0);
+
+    if (totalMontant > totalDisponibleSortie) {
       return res.status(400).json({
-        message: "Le montant selectionner est supperieur au montant restant"
+        message: `Le montant saisi: ${totalMontant.toLocaleString("fr-FR", {
+          minimumFractionDigits: 0,
+          maximumFractionDigits: 0,
+        })} est supérieur au montant restant chez le partenaire sortie qui est: ${totalDisponibleSortie.toLocaleString(
+          "fr-FR",
+          { minimumFractionDigits: 0, maximumFractionDigits: 0 }
+        )} GNF`,
       });
     }
 
-    if (totalMontant > partenaireEntre.montant_preter) {
+    // Vérifier si le partenaire Entre a assez (montant_preter + montant_credit_Xof)
+    const totalDisponibleEntre =
+      (partenaireEntre.montant_preter || 0) +
+      (partenaireEntre.montant_credit_Xof || 0);
+
+    if (totalMontant > totalDisponibleEntre) {
       return res.status(400).json({
-        message: "Le montant selectionner est supperieur au montant restant"
+        message: `Le montant saisi: ${totalMontant.toLocaleString("fr-FR", {
+          minimumFractionDigits: 0,
+          maximumFractionDigits: 0,
+        })} est supérieur au montant restant chez le partenaire entre qui est: ${totalDisponibleEntre.toLocaleString(
+          "fr-FR",
+          { minimumFractionDigits: 0, maximumFractionDigits: 0 }
+        )} GNF`,
       });
     }
 
+    // ✅ Déduction avec priorité sur montant_preter
+    const deduireMontant = (partenaire, montant) => {
+      let reste = montant;
+
+      if (partenaire.montant_preter >= reste) {
+        partenaire.montant_preter -= reste;
+        reste = 0;
+      } else {
+        reste -= partenaire.montant_preter;
+        partenaire.montant_preter = 0;
+      }
+
+      if (reste > 0) {
+        partenaire.montant_credit_Xof -= reste;
+      }
+    };
+
+    // Mettre à jour le type des sorties
     await Sortie.update({ type: "R" }, { where: { id: ids } });
 
-    partenaireSortie.montant_preter =
-      (partenaireSortie.montant_preter || 0) - totalMontant;
+    // Déduire côté sortie
+    deduireMontant(partenaireSortie, totalMontant);
     await partenaireSortie.save();
 
-    partenaireEntre.montant_preter =
-      (partenaireEntre.montant_preter || 0) - totalMontant;
+    // Déduire côté entre
+    deduireMontant(partenaireEntre, totalMontant);
     await partenaireEntre.save();
 
     res.status(200).json({ message: "Paiement effectué avec succès." });
@@ -608,6 +641,8 @@ const payerSorties = async (req, res) => {
     res.status(500).json({ message: "Erreur interne du serveur." });
   }
 };
+
+
 
 module.exports = {
   ajouterSortie,

@@ -1,32 +1,28 @@
-const Rembourser = require("../models/rembourser"); // Modèle Rembourser
-const Utilisateur = require("../models/utilisateurs"); // Modèle Utilisateur
-const Partenaire = require("../models/partenaires"); // Modèle Partenaire
+const Rembourser = require("../models/rembourser");
+const Utilisateur = require("../models/utilisateurs");
+const Partenaire = require("../models/partenaires");
 const { Sequelize } = require("sequelize");
 
 const ajouterRemboursement = async (req, res) => {
   try {
-    const { utilisateurId, prix, partenaireId, nom, montant, type , date_creation} = req.body;
+    const { utilisateurId, prix, partenaireId, nom, montant, type, date_creation } = req.body;
 
-    // Vérification des champs requis
     if (!utilisateurId || !partenaireId || !montant || !type || !date_creation) {
       return res
         .status(400)
         .json({ message: "Tous les champs sont obligatoires." });
     }
 
-    // Vérifier si l'utilisateur existe
     const utilisateur = await Utilisateur.findByPk(utilisateurId);
     if (!utilisateur) {
       return res.status(404).json({ message: "Utilisateur introuvable." });
     }
 
-    // Vérifier si le partenaire existe
     const partenaire = await Partenaire.findByPk(partenaireId);
     if (!partenaire) {
       return res.status(404).json({ message: "Partenaire introuvable." });
     }
 
-    // Calcul du montant dû
     const montant_due = (montant / 5000) * prix;
 
     const prixInt = parseInt(prix, 10) || 0;
@@ -62,11 +58,19 @@ const ajouterRemboursement = async (req, res) => {
         }
       } else {
         return res.status(400).json({
-          message: "Le montant saisi est supérieur au montant restant.",
+          message: `Le montant saisi: ${montant.toLocaleString(
+            "fr-FR",
+            { minimumFractionDigits: 0, maximumFractionDigits: 0 }
+          )} ,est supperieur au montant restant qui est: ${partenaire.montant_preter.toLocaleString(
+            "fr-FR",
+            {
+              minimumFractionDigits: 0,
+              maximumFractionDigits: 0,
+            }
+          )} GNF`,
         });
       }
     } else if (type === "BÉNÉFICE") {
-
       const remboursement = await Rembourser.create({
         utilisateurId,
         partenaireId,

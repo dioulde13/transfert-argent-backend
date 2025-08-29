@@ -38,7 +38,7 @@ const calculBeneficeAuthomatique = async (req, res) => {
     });
 
     entreData.forEach(entry => {
-      totalMontantEntreXof +=entry.montant_cfa
+      totalMontantEntreXof += entry.montant_cfa
       totalMontantEntreGnf += entry.montant_gnf;
     });
 
@@ -52,10 +52,20 @@ const calculBeneficeAuthomatique = async (req, res) => {
       }
     });
 
+
+
     sortieData.forEach(sortie => {
-      totalMontantSortieXof +=sortie.montant
-      totalMontantSortieGnf += sortie.montant_gnf;
+      const mode = sortie.dataValues.mode_payement_devise;
+      console.log(mode);
+      if (mode !== 'XOF') {
+        totalMontantSortieXof += sortie.dataValues.montant;
+        totalMontantSortieGnf += sortie.dataValues.montant_gnf;
+      }
     });
+
+    console.log(totalMontantSortieXof);
+    console.log(totalMontantSortieGnf);
+
 
     const remboursementData = await Rembourser.findAll({
       where: {
@@ -67,15 +77,20 @@ const calculBeneficeAuthomatique = async (req, res) => {
     });
 
     remboursementData.forEach(remb => {
-      totalMontantRembourserXof +=remb.montant
+      totalMontantRembourserXof += remb.montant
       totalMontantRembourserGnf += remb.montant_gnf;
     });
 
     totalMontantSortieRembourserXof = totalMontantSortieXof + totalMontantRembourserXof;
 
-     totalMontantSortieRembourserGnf = totalMontantSortieGnf + totalMontantRembourserGnf;
+    totalMontantSortieRembourserGnf = totalMontantSortieGnf + totalMontantRembourserGnf;
 
     const benefice = totalMontantEntreGnf - totalMontantSortieRembourserGnf;
+
+    // console.log(totalMontantSortieGnf);
+    // console.log(totalMontantSortieGnf);
+    // console.log(totalMontantSortieGnf);
+
 
     return res.json({
       totalMontantEntreGnf,
@@ -121,8 +136,8 @@ const calculBenefice = async (req, res) => {
 
     entreData.forEach(entry => {
       if (entry.status !== 'ANNULEE' && entry.type !== 'R') {
-          totalMontantCfa += entry.montant_cfa;
-          totalMontantGnf += entry.montant_gnf;
+        totalMontantCfa += entry.montant_cfa;
+        totalMontantGnf += entry.montant_gnf;
       }
     });
 
@@ -140,5 +155,5 @@ const calculBenefice = async (req, res) => {
   }
 };
 
-module.exports = { calculBenefice , calculBeneficeAuthomatique};
+module.exports = { calculBenefice, calculBeneficeAuthomatique };
 
