@@ -186,7 +186,7 @@ const ajouterSortie = async (req, res) => {
       const Prix2 = 0;
       const Sign1 = devise.signe_1;
       const Sign2 = devise.signe_2;
-      console.log("Entre avec success");
+      // console.log("Entre avec success");
 
       // Comme Prix1 et Prix2 = 0, on évite la division par zéro
       const montant_due = 0;
@@ -202,7 +202,7 @@ const ajouterSortie = async (req, res) => {
         }
       }
 
-      if (utilisateur.soldeXOF > montant) {
+      if ((utilisateur.soldeXOF + utilisateur.soldePayerAvecCodeXOF) >= montant && (utilisateur.soldeXOF + utilisateur.soldePayerAvecCodeXOF) !==0) {
         if (devise.paysArriver === partenaire.pays) {
           const sortie = await Sortie.create({
             utilisateurId,
@@ -218,13 +218,13 @@ const ajouterSortie = async (req, res) => {
             telephone_receveur,
             receveur,
             mode_payement_devise,
-            montant_gnf: montant_due, // toujours 0
+            montant_gnf: montant_due,
             signe_1: Sign1,
             signe_2: Sign2,
-            prix_1: Prix1, // 0
-            prix_2: Prix2, // 0
+            prix_1: Prix1,
+            prix_2: Prix2,
             montant: montant,
-            etat: "VALIDÉE", // fixé directement à VALIDÉE
+            etat: "VALIDÉE",
           });
 
           partenaire.montant_credit_Xof =
@@ -241,7 +241,7 @@ const ajouterSortie = async (req, res) => {
           });
         }
       } else {
-        const solde = Number(utilisateur.soldeXOF);
+        const solde = Number(utilisateur.soldeXOF + utilisateur.soldePayerAvecCodeXOF);
         res.status(400).json({
           message: `On ne peut pas faire une sortie de ${montant.toLocaleString(
             "fr-FR",
@@ -291,15 +291,18 @@ const modifierSortie = async (req, res) => {
     if (!partenaire) {
       return res.status(404).json({ message: "Partenaire introuvable." });
     }
+    let montant_due;
+    let ancienMontantCfa;
 
-    const montant_due = (montant / sortie.prix_1) * prix_2;
+    if (sortie.mode_payement_devise === "XOF") {
+      montant_due = 0;
+      ancienMontantCfa = sortie.montant;
+    } else {
+      montant_due = (montant / sortie.prix_1) * prix_2;
 
-    const ancienMontantCfa = sortie.montant;
+      ancienMontantCfa = sortie.montant;
+    }
 
-    console.log(ancienMontantCfa);
-    console.log(montant);
-
-    // Mise à jour des infos
     await sortie.update({
       partenaireId,
       codeEnvoyer,
@@ -313,9 +316,11 @@ const modifierSortie = async (req, res) => {
       prix_2,
       telephone_receveur,
     });
-
-    partenaire.montant_preter = (partenaire.montant_preter || 0) - ancienMontantCfa + montant;
-
+    if (sortie.mode_payement_devise === "XOF") {
+      partenaire.montant_credit_Xof = (partenaire.montant_credit_Xof || 0) - ancienMontantCfa + montant;
+    } else {
+      partenaire.montant_preter = (partenaire.montant_preter || 0) - ancienMontantCfa + montant;
+    }
     await partenaire.save();
 
     res.status(200).json({

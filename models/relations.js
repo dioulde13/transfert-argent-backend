@@ -13,9 +13,9 @@ const Credit = require("./credit");
 const PartenaireOM = require("./partenaireOM");
 const OrangeMoney = require("./orangeMoney");
 const PayementOM = require("./payementOM");
-const PayementPartenaireOm = require("./payementPartenaireOm");
+const PayementPartenaireOm = require("./payementPartenaireOm"); 
 const CreancierPartenaire = require("./creancierPartenaire");
-
+const Exchange = require("./exchange");
 
 
 OrangeMoney.belongsTo(PayementOM, { foreignKey: "orangeMoneyId" });
@@ -129,6 +129,11 @@ Utilisateur.hasMany(Depense, { foreignKey: "utilisateurId" });
 Depense.belongsTo(Utilisateur, { foreignKey: "utilisateurId" });
 
 // Relation One-to-Many : Un Utilisateur peut avoir plusieurs Entres
+Utilisateur.hasMany(Exchange, { foreignKey: "utilisateurId" });
+Exchange.belongsTo(Utilisateur, { foreignKey: "utilisateurId" });
+
+
+// Relation One-to-Many : Un Utilisateur peut avoir plusieurs Entres
 Utilisateur.hasMany(Credit, { foreignKey: "utilisateurId" });
 Credit.belongsTo(Utilisateur, { foreignKey: "utilisateurId" });
 
@@ -140,6 +145,7 @@ module.exports = {
   Depense,
   Entre,
   Sortie,
+  Exchange,
   CreancierPartenaire,
   Partenaire,
   Utilisateur,

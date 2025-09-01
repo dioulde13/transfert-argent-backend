@@ -20,8 +20,8 @@ const ajouterPayement = async (req, res) => {
     if (!utilisateur) {
       return res.status(404).json({ message: "Utilisateur introuvable." });
     }
-    console.log(signe);
-    console.log(prix);
+    // console.log(signe);
+    // console.log(prix);
 
     if (type === "ENTREE") {
       const entre = await Entre.findOne({ where: { code } });
@@ -71,7 +71,6 @@ const ajouterPayement = async (req, res) => {
         }
       } else {
         if (signe === "USD") {
-
           const montantDeviseGnf = montant / 100 * prix
           const montantEnCoursPayement = montantDeviseGnf + entre.montant_payer;
           if (montantEnCoursPayement > entre.montant_gnf) {
@@ -95,7 +94,7 @@ const ajouterPayement = async (req, res) => {
               signe
             });
 
-            utilisateur.solde = (utilisateur.solde || 0) + montantDeviseGnf;
+            utilisateur.soldePayerAvecCodeDolar = (utilisateur.soldePayerAvecCodeDolar || 0) + montant;
             await utilisateur.save();
 
             if (entre.montant_restant === 0) {
@@ -136,7 +135,7 @@ const ajouterPayement = async (req, res) => {
               signe
             });
 
-            utilisateur.solde = (utilisateur.solde || 0) + montantDeviseGnf;
+            utilisateur.soldePayerAvecCodeEuro = (utilisateur.soldePayerAvecCodeEuro || 0) + montant;
             await utilisateur.save();
 
             if (entre.montant_restant === 0) {
@@ -174,7 +173,7 @@ const ajouterPayement = async (req, res) => {
               signe
             });
 
-            utilisateur.solde = (utilisateur.solde || 0) + montantDeviseGnf;
+            utilisateur.soldePayerAvecCodeXOF = (utilisateur.soldePayerAvecCodeXOF || 0) + montant;
             await utilisateur.save();
 
             if (entre.montant_restant === 0) {
@@ -202,7 +201,6 @@ const ajouterPayement = async (req, res) => {
           .status(404)
           .json({ message: "Sortie introuvable avec ce code." });
       }
-
 
       if (sortie.etat === "VALIDÉE") {
         if (prix === 0) {
@@ -314,7 +312,7 @@ const ajouterPayement = async (req, res) => {
               });
             }
           } else if (sortie.mode_payement_devise === 'XOF') {
-            if (utilisateur.soldeXOF > montant) {
+            if ((utilisateur.soldeXOF + utilisateur.soldePayerAvecCodeXOF) >= montant && (utilisateur.soldeXOF + utilisateur.soldePayerAvecCodeXOF) !==0) {
               const montantEnCoursPayement = Number(montant) + Number(sortie.montant_payer);
               if (montantEnCoursPayement > Number(sortie.montant)) {
                 const montantRestant = Number(sortie.montant_restant);
@@ -347,7 +345,22 @@ const ajouterPayement = async (req, res) => {
                   type,
                 });
 
-                utilisateur.soldeXOF = Number(utilisateur.soldeXOF || 0) - Number(montant);
+
+                let reste = montant;
+
+                if (utilisateur.soldeXOF >= reste) {
+                  utilisateur.soldeXOF -= reste;
+                  reste = 0;
+                } else {
+                  reste -= utilisateur.soldeXOF;
+                  utilisateur.soldeXOF = 0;
+                }
+
+                if (reste > 0) {
+                  utilisateur.soldePayerAvecCodeXOF -= reste;
+                }
+
+                // utilisateur.soldeXOF = Number(utilisateur.soldeXOF || 0) - Number(montant);
                 await utilisateur.save();
                 sortie.status = "PAYEE";
                 await sortie.save();

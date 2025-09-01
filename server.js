@@ -28,6 +28,8 @@ const payementPartenaireOmRoute = require("./routes/payementPartenaireOmRoute");
 const orangeMoneyRoute = require("./routes/orangeMoneyRoute");
 const payementOMRoute = require("./routes/payementOMRoute");
 const creancierPartenaireRoute = require("./routes/creancierPartenaireRoute");
+const exchangeRoute = require("./routes/exchangeRoute");
+
 
 
 
@@ -91,9 +93,10 @@ app.use("/api/echange", echangeRoute);
 app.use("/api/payementEchange", payementEchangeRoute);
 app.use("/api/credit", creditRoute);
 app.use("/api/benefices", beneficeRoute); 
-app.use("/api/calculBenefices", calculBeneficeRoute);
+app.use("/api/calculBenefices", calculBeneficeRoute); 
 app.use("/api/auth", authRoutes);
 app.use("/api/creancierPartenaire", creancierPartenaireRoute);
+app.use("/api/exchange", exchangeRoute);
 
 
 // Sequelize sync

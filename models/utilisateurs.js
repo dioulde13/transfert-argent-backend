@@ -29,11 +29,6 @@ const Utilisateur = sequelize.define('Utilisateur', {
     allowNull: false,
     defaultValue: 0,
   },
-  autre_solde: {
-    type: DataTypes.BIGINT,
-    allowNull: false,
-    defaultValue: 0,
-  },
   soldePDV: {
     type: DataTypes.BIGINT,
     allowNull: false,
@@ -42,12 +37,22 @@ const Utilisateur = sequelize.define('Utilisateur', {
   soldeXOF: {
     type: DataTypes.BIGINT,
     allowNull: true,
+    defaultValue: 0,  
+  },
+   soldePayerAvecCodeXOF: {
+    type: DataTypes.BIGINT,
+    allowNull: true,
     defaultValue: 0, 
   },
-  encien_solde: {
+    soldePayerAvecCodeDolar: {
     type: DataTypes.BIGINT,
-    allowNull: false,
-    defaultValue: 0,
+    allowNull: true,
+    defaultValue: 0, 
+  },
+    soldePayerAvecCodeEuro: {
+    type: DataTypes.BIGINT,
+    allowNull: true,
+    defaultValue: 0, 
   },
   email: {
     type: DataTypes.STRING,
