@@ -6,6 +6,7 @@ const Entre = require('../models/entres');       // Entrées d'argent
 const Sortie = require('../models/sorties');     // Sorties d'argent
 const Rembourser = require('../models/rembourser'); // Remboursements
 
+
 const calculBeneficeAuthomatique = async (req, res) => {
   try {
     const { date_debut, date_fin } = req.query;

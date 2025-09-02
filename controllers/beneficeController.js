@@ -2,6 +2,7 @@ const { Op } = require('sequelize');
 const Entre = require('../models/entres');
 const Rembourser = require('../models/rembourser');
 
+
 const donneBenefice = async (req, res) => {
     try {
         const { dateDebut, dateFin } = req.query;
