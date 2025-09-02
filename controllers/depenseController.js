@@ -3,8 +3,6 @@ const Utilisateur = require('../models/utilisateurs');
 const { Op } = require('sequelize');
 
 
-
-
 // API pour calculer la somme des dépenses du jour actuel
 const sommeDepenseAujourdHui = async (req, res) => {
   try {

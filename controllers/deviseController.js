@@ -1,8 +1,6 @@
 const Devise = require('../models/devises');
 const Utilisateur = require('../models/utilisateurs');
 
-
-
 const recupererDevises = async (req, res) => {
     try {
       // Récupérer toutes les devises
