@@ -322,7 +322,7 @@ const ajouterPayement = async (req, res) => {
                     maximumFractionDigits: 0,
                   })} GNF, est supérieur au montant restant qui est: ${Number(sortie.montant_payer) === 0
                     ?
-                    montant.toLocaleString("fr-FR", {
+                    montantRestant.toLocaleString("fr-FR", {
                       minimumFractionDigits: 0,
                       maximumFractionDigits: 0,
                     })
@@ -362,7 +362,11 @@ const ajouterPayement = async (req, res) => {
 
                 // utilisateur.soldeXOF = Number(utilisateur.soldeXOF || 0) - Number(montant);
                 await utilisateur.save();
-                sortie.status = "PAYEE";
+                 if (Number(sortie.montant_restant) === 0) {
+                    sortie.status = "PAYEE";
+                  } else if (Number(sortie.montant_payer) < Number(sortie.montant)) {
+                    sortie.status = "EN COURS";
+                  }
                 await sortie.save();
                 res.status(201).json({
                   message: "Payement ajouté avec succès.",

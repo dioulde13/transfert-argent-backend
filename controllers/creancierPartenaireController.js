@@ -29,9 +29,9 @@ const ajouterCreancierPartenaire = async (req, res) => {
       montant,
     });
 
-    partenaire.montant_credit_Xof =
-      (partenaire.montant_credit_Xof || 0) + Number(montant);
-    await partenaire.save();
+    // partenaire.montant_credit_Xof =
+    //   (partenaire.montant_credit_Xof || 0) + Number(montant);
+    // await partenaire.save();
 
     utilisateur.soldeXOF = Number(utilisateur.soldeXOF || 0) + Number(montant);
     await utilisateur.save();
@@ -49,31 +49,31 @@ const ajouterCreancierPartenaire = async (req, res) => {
 
 
 const recupererCreancierPartenaires = async (req, res) => {
-    try {
-        const partenaireCreancier = await CreancierPartenaire.findAll({
-            include: [
-                {
-                    model: Utilisateur,
-                    attributes: ["id", "nom", "prenom", "email"],
-                },
-            ],
-            include: [
-                {
-                    model: Partenaire,
-                    attributes: ["id", "nom", "prenom", "montant_preter", "pays"],
-                },
-            ],
-        });
+  try {
+    const partenaireCreancier = await CreancierPartenaire.findAll({
+      include: [
+        {
+          model: Utilisateur,
+          attributes: ["id", "nom", "prenom", "email"],
+        },
+      ],
+      include: [
+        {
+          model: Partenaire,
+          attributes: ["id", "nom", "prenom", "montant_preter", "pays"],
+        },
+      ],
+    });
 
-        if (partenaireCreancier.length === 0) {
-            return res.status(404).json({ message: "Aucun partenaire trouvé." });
-        }
-
-        res.status(200).json(partenaireCreancier);
-    } catch (error) {
-        console.error("Erreur lors de la récupération des partenaires :", error);
-        res.status(500).json({ message: "Erreur interne du serveur." });
+    if (partenaireCreancier.length === 0) {
+      return res.status(404).json({ message: "Aucun partenaire trouvé." });
     }
+
+    res.status(200).json(partenaireCreancier);
+  } catch (error) {
+    console.error("Erreur lors de la récupération des partenaires :", error);
+    res.status(500).json({ message: "Erreur interne du serveur." });
+  }
 };
 
 

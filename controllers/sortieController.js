@@ -202,7 +202,7 @@ const ajouterSortie = async (req, res) => {
         }
       }
 
-      if ((utilisateur.soldeXOF + utilisateur.soldePayerAvecCodeXOF) >= montant && (utilisateur.soldeXOF + utilisateur.soldePayerAvecCodeXOF) !==0) {
+      // if ((utilisateur.soldeXOF + utilisateur.soldePayerAvecCodeXOF) >= montant && (utilisateur.soldeXOF + utilisateur.soldePayerAvecCodeXOF) !==0) {
         if (devise.paysArriver === partenaire.pays) {
           const sortie = await Sortie.create({
             utilisateurId,
@@ -240,19 +240,19 @@ const ajouterSortie = async (req, res) => {
             message: `Le pays de destination ne correspond pas au pays du partenaire.`,
           });
         }
-      } else {
-        const solde = Number(utilisateur.soldeXOF + utilisateur.soldePayerAvecCodeXOF);
-        res.status(400).json({
-          message: `On ne peut pas faire une sortie de ${montant.toLocaleString(
-            "fr-FR",
-            { minimumFractionDigits: 0, maximumFractionDigits: 0 }
-          )} GNF,
-        le solde dans la caisse est: ${solde.toLocaleString("fr-FR", {
-            minimumFractionDigits: 0,
-            maximumFractionDigits: 0,
-          })} GNF`,
-        });
-      }
+      // } else {
+      //   const solde = Number(utilisateur.soldeXOF + utilisateur.soldePayerAvecCodeXOF);
+      //   res.status(400).json({
+      //     message: `On ne peut pas faire une sortie de ${montant.toLocaleString(
+      //       "fr-FR",
+      //       { minimumFractionDigits: 0, maximumFractionDigits: 0 }
+      //     )} GNF,
+      //   le solde dans la caisse est: ${solde.toLocaleString("fr-FR", {
+      //       minimumFractionDigits: 0,
+      //       maximumFractionDigits: 0,
+      //     })} GNF`,
+      //   });
+      // }
     }
 
   } catch (error) {
