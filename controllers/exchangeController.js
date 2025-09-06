@@ -62,7 +62,7 @@ const ajouterExchange = async (req, res) => {
         } else if (signOne === "GNF" && signTwo === "EURO") {
             if (utilisateur.solde > 0) {
                 soldeTotal = montant / prix * 100;
-                utilisateur.solde -= soldeTotal;
+                utilisateur.solde -= montant;
                 utilisateur.soldePayerAvecCodeEuro += montant;
             } else {
                 return res.status(404).json({ message: "Solde insufissant." });
