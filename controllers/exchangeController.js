@@ -28,7 +28,7 @@ const ajouterExchange = async (req, res) => {
 
         let soldeTotal;
         if (signOne === 'USD' && signTwo === 'GNF') {
-            if (utilisateur.soldePayerAvecCodeDolar > 0) {
+            if (utilisateur.soldePayerAvecCodeDolar > montant) {
                 soldeTotal = montant * prix / 100;
                 utilisateur.solde += soldeTotal;
                 utilisateur.soldePayerAvecCodeDolar -= montant;
@@ -36,15 +36,28 @@ const ajouterExchange = async (req, res) => {
                 return res.status(404).json({ message: "Solde insufissant." });
             }
         } else if (signOne === "XOF" && signTwo === "GNF") {
-            if (utilisateur.soldePayerAvecCodeXOF > 0) {
+            if ((utilisateur.soldePayerAvecCodeXOF + utilisateur.soldeXOF) > montant) {
                 soldeTotal = montant * prix / 5000;
                 utilisateur.solde += soldeTotal;
-                utilisateur.soldePayerAvecCodeXOF -= montant;
+
+                let reste = montant;
+
+                if (utilisateur.soldeXOF >= reste) {
+                    utilisateur.soldeXOF -= reste;
+                    reste = 0;
+                } else {
+                    reste -= utilisateur.soldeXOF;
+                    utilisateur.soldeXOF = 0;
+                }
+                if (reste > 0) {
+                    utilisateur.soldePayerAvecCodeXOF -= reste;
+                }
+                // utilisateur.soldePayerAvecCodeXOF -= montant;
             } else {
                 return res.status(404).json({ message: "Solde insufissant." });
             }
         } else if (signOne === 'EURO' && signTwo === 'GNF') {
-            if (utilisateur.soldePayerAvecCodeEuro > 0) {
+            if (utilisateur.soldePayerAvecCodeEuro > montant) {
                 soldeTotal = montant * prix / 100;
                 utilisateur.solde += soldeTotal;
                 utilisateur.soldePayerAvecCodeEuro -= montant;
@@ -60,7 +73,7 @@ const ajouterExchange = async (req, res) => {
                 return res.status(404).json({ message: "Solde insufissant." });
             }
         } else if (signOne === "GNF" && signTwo === "EURO") {
-            if (utilisateur.solde > 0) {
+            if (utilisateur.solde > montant) {
                 soldeTotal = montant / prix * 100;
                 utilisateur.solde -= montant;
                 utilisateur.soldePayerAvecCodeEuro += montant;
@@ -68,7 +81,7 @@ const ajouterExchange = async (req, res) => {
                 return res.status(404).json({ message: "Solde insufissant." });
             }
         } else if (signOne === "GNF" && signTwo === "USD") {
-            if (utilisateur.solde > 0) {
+            if (utilisateur.solde > montant) {
                 soldeTotal = montant / prix * 100;
                 utilisateur.solde -= montant;
                 utilisateur.soldePayerAvecCodeDolar += soldeTotal;
