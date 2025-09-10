@@ -114,6 +114,11 @@ const Sortie = sequelize.define("Sortie", {
     type: DataTypes.ENUM("GNF", "XOF", "USD", "EURO"),
     allowNull: true,
   },
+  mode_payement: {
+    type: DataTypes.ENUM("GNF", "XOF", "EURO", "DOLLAR"),
+    allowNull: false,
+    defaultValue: "GNF",
+  },
   //   payement_devise_money: {
   //   type: DataTypes.ENUM("GNF", "XOF", "USD", "EURO"),
   //   allowNull: true,

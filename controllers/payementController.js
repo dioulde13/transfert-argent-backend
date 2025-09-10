@@ -41,27 +41,32 @@ const modifierPayement = async (req, res) => {
     if (entre) {
       const payements = await Payement.findAll({ where: { entreId: entre.id } });
 
-      const totalPaye = payements.reduce((total, p) => total + (p.montant / 100 * p.prix), 0);
+      const ancienMontant = Number(payement.previous('montant'));
+      const encienPrix = Number(payement.previous('prix'));
+      const nouveauMontant = Number(payement.montant);
+      const nouveauPrix = Number(payement.prix);
 
-      ancienMontant = payement.previous('montant');
-      encienPrix = payement.previous('prix');
+      let totalPaye, totalEncien, nouveauMontants, soustraction, montantPayer, montantRestant;
 
-
-      totalEncien = (ancienMontant / 100) * encienPrix;
-
-      nouveauMontant = payement.montant;
-      nouveauPrix = payement.prix;
-
-      nouveauMontants = (nouveauMontant / 100) * nouveauPrix;
-
-      soustraction = totalPaye - totalEncien;
-
-      montantPayer = nouveauMontants + soustraction;
-      montantRestant = entre.montant_gnf - montantPayer;
-
-
-      entre.montant_payer = montantPayer;
-      entre.montant_restant = montantRestant;
+      if (signe === "USD" || signe === "EURO") {
+        totalPaye = payements.reduce((total, p) => total + (Number(p.montant) / 100 * Number(p.prix)), 0);
+        totalEncien = (ancienMontant / 100) * encienPrix;
+        nouveauMontants = (nouveauMontant / 100) * nouveauPrix;
+        soustraction = totalPaye - totalEncien;
+        montantPayer = nouveauMontants + soustraction;
+        montantRestant = Number(entre.montant_gnf) - montantPayer;
+        entre.montant_payer = montantPayer;
+        entre.montant_restant = montantRestant;
+      } else {
+        totalPaye = payements.reduce((total, p) => total + Number(p.montant), 0);
+        totalEncien = ancienMontant;
+        nouveauMontants = nouveauMontant;
+        soustraction = totalPaye - totalEncien;
+        montantPayer = nouveauMontants + soustraction;
+        montantRestant = Number(entre.montant_gnf) - montantPayer;
+        entre.montant_payer = montantPayer;
+        entre.montant_restant = montantRestant;
+      }
 
       if (signe === "USD" && payement.signe === "USD" && utilisateur.soldePayerAvecCodeDolar >= ancienMontant) {
         utilisateur.soldePayerAvecCodeDolar -= Number(ancienMontant);
@@ -172,27 +177,32 @@ const modifierPayement = async (req, res) => {
     if (sortie) {
       const payements = await Payement.findAll({ where: { sortieId: sortie.id } });
 
-      const totalPaye = payements.reduce((total, p) => total + (p.montant / 100 * p.prix), 0);
+      const ancienMontant = Number(payement.previous('montant'));
+      const encienPrix = Number(payement.previous('prix'));
+      const nouveauMontant = Number(payement.montant);
+      const nouveauPrix = Number(payement.prix);
 
-      ancienMontant = payement.previous('montant');
-      encienPrix = payement.previous('prix');
+      let totalPaye, totalEncien, nouveauMontants, soustraction, montantPayer, montantRestant;
 
-
-      totalEncien = (ancienMontant / 100) * encienPrix;
-
-      nouveauMontant = payement.montant;
-      nouveauPrix = payement.prix;
-
-      nouveauMontants = (nouveauMontant / 100) * nouveauPrix;
-
-      soustraction = totalPaye - totalEncien;
-
-      montantPayer = nouveauMontants + soustraction;
-      montantRestant = sortie.montant_gnf - montantPayer;
-
-
-      sortie.montant_payer = montantPayer;
-      sortie.montant_restant = montantRestant;
+      if (signe === "USD" || signe === "EURO") {
+        totalPaye = payements.reduce((total, p) => total + (Number(p.montant) / 100 * Number(p.prix)), 0);
+        totalEncien = (ancienMontant / 100) * encienPrix;
+        nouveauMontants = (nouveauMontant / 100) * nouveauPrix;
+        soustraction = totalPaye - totalEncien;
+        montantPayer = nouveauMontants + soustraction;
+        montantRestant = Number(sortie.montant_gnf) - montantPayer;
+        sortie.montant_payer = montantPayer;
+        sortie.montant_restant = montantRestant;
+      } else {
+        totalPaye = payements.reduce((total, p) => total + Number(p.montant), 0);
+        totalEncien = ancienMontant;
+        nouveauMontants = nouveauMontant;
+        soustraction = totalPaye - totalEncien;
+        montantPayer = nouveauMontants + soustraction;
+        montantRestant = Number(sortie.montant_gnf) - montantPayer;
+        sortie.montant_payer = montantPayer;
+        sortie.montant_restant = montantRestant;
+      }
 
       if (signe === "USD" && payement.signe === "USD" && utilisateur.soldePayerAvecCodeDolar >= ancienMontant) {
         utilisateur.soldePayerAvecCodeDolar += Number(ancienMontant);
@@ -357,7 +367,7 @@ const ajouterPayement = async (req, res) => {
             date_creation,
             type,
             prix,
-            signe
+            signe: "GNF"
           });
 
           utilisateur.solde = (utilisateur.solde || 0) + montant;
