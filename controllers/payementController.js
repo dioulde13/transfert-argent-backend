@@ -4,6 +4,313 @@ const Payement = require("../models/payement");
 const { Sequelize } = require("sequelize");
 const Sortie = require("../models/sorties");
 
+
+const modifierPayement = async (req, res) => {
+  try {
+    const { id } = req.params;
+    let { code, montant, prix, signe, date_creation } = req.body;
+
+    const payement = await Payement.findByPk(id, {
+      include: [Utilisateur, Entre, Sortie]
+    });
+
+
+    if (!payement) {
+      return res.status(404).json({ message: "Payement introuvable." });
+    }
+
+    const utilisateur = payement.Utilisateur;
+    let entre = payement.entreId ? await Entre.findByPk(payement.entreId) : null;
+    let sortie = payement.sortieId ? await Sortie.findByPk(payement.sortieId) : null;
+
+
+    // Calculs ou validations avant modification si nécessaire
+    // Exemple : vérifier que le montant est correct
+    if (montant <= 0) {
+      return res.status(400).json({ message: "Le montant doit être supérieur à 0." });
+    }
+
+    // Modifier les champs du paiement
+    payement.code = code ?? payement.code;
+    payement.montant = montant ?? payement.montant;
+    payement.prix = prix ?? payement.prix;
+    payement.signe = signe ?? payement.signe;
+    payement.date_creation = date_creation ?? payement.date_creation;
+
+
+    if (entre) {
+      const payements = await Payement.findAll({ where: { entreId: entre.id } });
+
+      const totalPaye = payements.reduce((total, p) => total + (p.montant / 100 * p.prix), 0);
+
+      ancienMontant = payement.previous('montant');
+      encienPrix = payement.previous('prix');
+
+
+      totalEncien = (ancienMontant / 100) * encienPrix;
+
+      nouveauMontant = payement.montant;
+      nouveauPrix = payement.prix;
+
+      nouveauMontants = (nouveauMontant / 100) * nouveauPrix;
+
+      soustraction = totalPaye - totalEncien;
+
+      montantPayer = nouveauMontants + soustraction;
+      montantRestant = entre.montant_gnf - montantPayer;
+
+
+      entre.montant_payer = montantPayer;
+      entre.montant_restant = montantRestant;
+
+      if (signe === "USD" && payement.signe === "USD" && utilisateur.soldePayerAvecCodeDolar >= ancienMontant) {
+        utilisateur.soldePayerAvecCodeDolar -= Number(ancienMontant);
+        utilisateur.soldePayerAvecCodeDolar += Number(montant);
+        payement.montant = Number(montant);
+      }
+      else if (signe === "EURO" && payement.signe === "EURO" && utilisateur.soldePayerAvecCodeEuro >= ancienMontant) {
+        utilisateur.soldePayerAvecCodeEuro -= ancienMontant;
+        utilisateur.soldePayerAvecCodeEuro += montant;
+        payement.montant = Number(montant);
+      } else if (signe === "XOF" && payement.signe === "XOF" && utilisateur.soldePayerAvecCodeXOF >= ancienMontant) {
+        utilisateur.soldePayerAvecCodeXOF -= Number(ancienMontant);
+        utilisateur.soldePayerAvecCodeXOF += Number(montant);
+        payement.montant = Number(montant);
+      } else if (payement.signe === "GNF" && utilisateur.solde >= ancienMontant) {
+        utilisateur.solde -= Number(ancienMontant);
+        utilisateur.solde += Number(montant);
+        payement.montant = Number(montant);
+      } else if (signe === "EURO" && payement.signe === "USD" && utilisateur.soldePayerAvecCodeDolar >= ancienMontant) {
+        utilisateur.soldePayerAvecCodeDolar -= Number(ancienMontant);
+        utilisateur.soldePayerAvecCodeEuro += Number(montant);
+        payement.montant = Number(montant);
+      }
+      else if (signe === "USD" && payement.signe === "EURO" && utilisateur.soldePayerAvecCodeEuro >= ancienMontant) {
+        utilisateur.soldePayerAvecCodeEuro -= Number(ancienMontant);
+        utilisateur.soldePayerAvecCodeDolar += Number(montant);
+        payement.montant = Number(montant);
+      }
+      else if (signe === "XOF" && payement.signe === "EURO" && utilisateur.soldePayerAvecCodeEuro >= ancienMontant) {
+        utilisateur.soldePayerAvecCodeEuro -= Number(ancienMontant);
+        utilisateur.soldePayerAvecCodeXOF += Number(montant);
+        payement.montant = Number(montant);
+      }
+      else if (signe === "EURO" && payement.signe === "XOF" && utilisateur.soldePayerAvecCodeXOF >= ancienMontant) {
+        utilisateur.soldePayerAvecCodeXOF -= Number(ancienMontant);
+        utilisateur.soldePayerAvecCodeEuro += Number(montant);
+        payement.montant = Number(montant);
+      }
+      else if (signe === "XOF" && payement.signe === "USD" && utilisateur.soldePayerAvecCodeDolar >= ancienMontant) {
+        utilisateur.soldePayerAvecCodeDolar -= Number(ancienMontant);
+        utilisateur.soldePayerAvecCodeXOF += Number(montant);
+        payement.montant = Number(montant);
+      }
+      else if (signe === "USD" && payement.signe === "XOF" && utilisateur.soldePayerAvecCodeXOF >= ancienMontant) {
+        utilisateur.soldePayerAvecCodeXOF -= Number(ancienMontant);
+        utilisateur.soldePayerAvecCodeDolar += Number(montant);
+        payement.montant = Number(montant);
+      }
+
+      //GNF et les autres signe
+      else if (payement.signe === "GNF" && signe === "XOF" && utilisateur.solde >= ancienMontant) {
+        utilisateur.solde -= Number(ancienMontant);
+        utilisateur.soldePayerAvecCodeXOF += Number(montant);
+        payement.montant = Number(montant);
+      }
+      else if (payement.signe === "GNF" && signe === "USD" && utilisateur.solde >= ancienMontant) {
+        utilisateur.solde -= Number(ancienMontant);
+        utilisateur.soldePayerAvecCodeDolar += Number(montant);
+        payement.montant = Number(montant);
+      }
+      else if (payement.signe === "GNF" && signe === "EURO" && utilisateur.solde >= ancienMontant) {
+        utilisateur.solde -= Number(ancienMontant);
+        utilisateur.soldePayerAvecCodeEuro += Number(montant);
+        payement.montant = Number(montant);
+      }
+
+      //les autres signe a GNF 
+      else if (payement.signe === "XOF" && signe === "GNF" && utilisateur.soldePayerAvecCodeXOF >= ancienMontant) {
+        utilisateur.soldePayerAvecCodeXOF -= Number(ancienMontant);
+        utilisateur.solde += Number(montant);
+        payement.montant = Number(montant);
+      }
+      else if (payement.signe === "USD" && signe === "GNF" && utilisateur.soldePayerAvecCodeDolar >= ancienMontant) {
+        utilisateur.soldePayerAvecCodeDolar -= Number(ancienMontant);
+        utilisateur.solde += Number(montant);
+        payement.montant = Number(montant);
+      }
+      else if (payement.signe === "EURO" && signe === "GNF" && utilisateur.soldePayerAvecCodeEuro >= ancienMontant) {
+        utilisateur.soldePayerAvecCodeEuro -= Number(ancienMontant);
+        utilisateur.solde += Number(montant);
+        payement.montant = Number(montant);
+      }
+      else {
+        return res.status(404).json({
+          message: `Le montant dans la caisse est inferieure au montant:${ancienMontant.toLocaleString(
+            "fr-FR",
+            { minimumFractionDigits: 0, maximumFractionDigits: 0 }
+          )}`
+        });
+      }
+      if (montantPayer > entre.montant_gnf) {
+        return res.status(400).json({
+          message: `Le montant payé est supérieur au montant restant`,
+        });
+      } else {
+        if (entre.montant_restant === 0) {
+          entre.status = "PAYEE";
+        } else if (entre.montant_payer < entre.montant_gnf) {
+          entre.status = "EN COURS";
+        }
+        await entre.save();
+        await payement.save();
+        await utilisateur.save();
+      }
+    }
+
+
+    if (sortie) {
+      const payements = await Payement.findAll({ where: { sortieId: sortie.id } });
+
+      const totalPaye = payements.reduce((total, p) => total + (p.montant / 100 * p.prix), 0);
+
+      ancienMontant = payement.previous('montant');
+      encienPrix = payement.previous('prix');
+
+
+      totalEncien = (ancienMontant / 100) * encienPrix;
+
+      nouveauMontant = payement.montant;
+      nouveauPrix = payement.prix;
+
+      nouveauMontants = (nouveauMontant / 100) * nouveauPrix;
+
+      soustraction = totalPaye - totalEncien;
+
+      montantPayer = nouveauMontants + soustraction;
+      montantRestant = sortie.montant_gnf - montantPayer;
+
+
+      sortie.montant_payer = montantPayer;
+      sortie.montant_restant = montantRestant;
+
+      if (signe === "USD" && payement.signe === "USD" && utilisateur.soldePayerAvecCodeDolar >= ancienMontant) {
+        utilisateur.soldePayerAvecCodeDolar += Number(ancienMontant);
+        utilisateur.soldePayerAvecCodeDolar -= Number(montant);
+        payement.montant = Number(montant);
+      }
+      else if (signe === "EURO" && payement.signe === "EURO" && utilisateur.soldePayerAvecCodeEuro >= ancienMontant) {
+        utilisateur.soldePayerAvecCodeEuro += ancienMontant;
+        utilisateur.soldePayerAvecCodeEuro -= montant;
+        payement.montant = Number(montant);
+      } else if (signe === "XOF" && payement.signe === "XOF" && utilisateur.soldePayerAvecCodeXOF >= ancienMontant) {
+        utilisateur.soldePayerAvecCodeXOF += Number(ancienMontant);
+        utilisateur.soldePayerAvecCodeXOF -= Number(montant);
+        payement.montant = Number(montant);
+      } else if (payement.signe === "GNF" && utilisateur.solde >= ancienMontant) {
+        utilisateur.solde += Number(ancienMontant);
+        utilisateur.solde -= Number(montant);
+        payement.montant = Number(montant);
+      } else if (signe === "EURO" && payement.signe === "USD" && utilisateur.soldePayerAvecCodeDolar >= ancienMontant) {
+        utilisateur.soldePayerAvecCodeDolar += Number(ancienMontant);
+        utilisateur.soldePayerAvecCodeEuro -= Number(montant);
+        payement.montant = Number(montant);
+      }
+      else if (signe === "USD" && payement.signe === "EURO" && utilisateur.soldePayerAvecCodeEuro >= ancienMontant) {
+        utilisateur.soldePayerAvecCodeEuro += Number(ancienMontant);
+        utilisateur.soldePayerAvecCodeDolar -= Number(montant);
+        payement.montant = Number(montant);
+      }
+      else if (signe === "XOF" && payement.signe === "EURO" && utilisateur.soldePayerAvecCodeEuro >= ancienMontant) {
+        utilisateur.soldePayerAvecCodeEuro += Number(ancienMontant);
+        utilisateur.soldePayerAvecCodeXOF -= Number(montant);
+        payement.montant = Number(montant);
+      }
+      else if (signe === "EURO" && payement.signe === "XOF" && utilisateur.soldePayerAvecCodeXOF >= ancienMontant) {
+        utilisateur.soldePayerAvecCodeXOF += Number(ancienMontant);
+        utilisateur.soldePayerAvecCodeEuro -= Number(montant);
+        payement.montant = Number(montant);
+      }
+      else if (signe === "XOF" && payement.signe === "USD" && utilisateur.soldePayerAvecCodeDolar >= ancienMontant) {
+        utilisateur.soldePayerAvecCodeDolar += Number(ancienMontant);
+        utilisateur.soldePayerAvecCodeXOF -= Number(montant);
+        payement.montant = Number(montant);
+      }
+      else if (signe === "USD" && payement.signe === "XOF" && utilisateur.soldePayerAvecCodeXOF >= ancienMontant) {
+        utilisateur.soldePayerAvecCodeXOF += Number(ancienMontant);
+        utilisateur.soldePayerAvecCodeDolar -= Number(montant);
+        payement.montant = Number(montant);
+      }
+
+      //GNF et les autres signe
+      else if (payement.signe === "GNF" && signe === "XOF" && utilisateur.solde >= ancienMontant) {
+        utilisateur.solde += Number(ancienMontant);
+        utilisateur.soldePayerAvecCodeXOF -= Number(montant);
+        payement.montant = Number(montant);
+      }
+      else if (payement.signe === "GNF" && signe === "USD" && utilisateur.solde >= ancienMontant) {
+        utilisateur.solde += Number(ancienMontant);
+        utilisateur.soldePayerAvecCodeDolar -= Number(montant);
+        payement.montant = Number(montant);
+      }
+      else if (payement.signe === "GNF" && signe === "EURO" && utilisateur.solde >= ancienMontant) {
+        utilisateur.solde += Number(ancienMontant);
+        utilisateur.soldePayerAvecCodeEuro -= Number(montant);
+        payement.montant = Number(montant);
+      }
+
+      //les autres signe a GNF 
+      else if (payement.signe === "XOF" && signe === "GNF" && utilisateur.soldePayerAvecCodeXOF >= ancienMontant) {
+        utilisateur.soldePayerAvecCodeXOF += Number(ancienMontant);
+        utilisateur.solde -= Number(montant);
+        payement.montant = Number(montant);
+      }
+      else if (payement.signe === "USD" && signe === "GNF" && utilisateur.soldePayerAvecCodeDolar >= ancienMontant) {
+        utilisateur.soldePayerAvecCodeDolar += Number(ancienMontant);
+        utilisateur.solde -= Number(montant);
+        payement.montant = Number(montant);
+      }
+      else if (payement.signe === "EURO" && signe === "GNF" && utilisateur.soldePayerAvecCodeEuro >= ancienMontant) {
+        utilisateur.soldePayerAvecCodeEuro += Number(ancienMontant);
+        utilisateur.solde -= Number(montant);
+        payement.montant = Number(montant);
+      }
+      else {
+        return res.status(404).json({
+          message: `Le montant dans la caisse est inferieure au montant:${ancienMontant.toLocaleString(
+            "fr-FR",
+            { minimumFractionDigits: 0, maximumFractionDigits: 0 }
+          )}`
+        });
+      }
+
+      if (montantPayer > sortie.montant_gnf) {
+        return res.status(400).json({
+          message: `Le montant payé est supérieur au montant restant`,
+        });
+      } else {
+        if (sortie.montant_restant === 0) {
+          sortie.status = "PAYEE";
+        } else if (sortie.montant_payer < sortie.montant_gnf) {
+          sortie.status = "EN COURS";
+        }
+        await sortie.save();
+        await payement.save();
+        await utilisateur.save();
+      }
+    }
+
+    res.status(200).json({
+      message: "Payement modifié avec succès.",
+      payement,
+    });
+  } catch (error) {
+    console.error("Erreur lors de la modification du payement :", error);
+    res.status(500).json({ message: "Erreur interne du serveur." });
+  }
+};
+
+
 const ajouterPayement = async (req, res) => {
   try {
     let { utilisateurId, code, montant, date_creation, prix, type, signe } = req.body;
@@ -312,7 +619,7 @@ const ajouterPayement = async (req, res) => {
               });
             }
           } else if (sortie.mode_payement_devise === 'XOF') {
-            if ((utilisateur.soldeXOF + utilisateur.soldePayerAvecCodeXOF) >= montant && (utilisateur.soldeXOF + utilisateur.soldePayerAvecCodeXOF) !==0) {
+            if ((utilisateur.soldeXOF + utilisateur.soldePayerAvecCodeXOF) >= montant && (utilisateur.soldeXOF + utilisateur.soldePayerAvecCodeXOF) !== 0) {
               const montantEnCoursPayement = Number(montant) + Number(sortie.montant_payer);
               if (montantEnCoursPayement > Number(sortie.montant)) {
                 const montantRestant = Number(sortie.montant_restant);
@@ -362,11 +669,11 @@ const ajouterPayement = async (req, res) => {
 
                 // utilisateur.soldeXOF = Number(utilisateur.soldeXOF || 0) - Number(montant);
                 await utilisateur.save();
-                 if (Number(sortie.montant_restant) === 0) {
-                    sortie.status = "PAYEE";
-                  } else if (Number(sortie.montant_payer) < Number(sortie.montant)) {
-                    sortie.status = "EN COURS";
-                  }
+                if (Number(sortie.montant_restant) === 0) {
+                  sortie.status = "PAYEE";
+                } else if (Number(sortie.montant_payer) < Number(sortie.montant)) {
+                  sortie.status = "EN COURS";
+                }
                 await sortie.save();
                 res.status(201).json({
                   message: "Payement ajouté avec succès.",
@@ -579,19 +886,19 @@ const ajouterPayement = async (req, res) => {
               });
 
 
-               let reste = montant;
+              let reste = montant;
 
-                if (utilisateur.soldeXOF >= reste) {
-                  utilisateur.soldeXOF -= reste;
-                  reste = 0;
-                } else {
-                  reste -= utilisateur.soldeXOF;
-                  utilisateur.soldeXOF = 0;
-                }
+              if (utilisateur.soldeXOF >= reste) {
+                utilisateur.soldeXOF -= reste;
+                reste = 0;
+              } else {
+                reste -= utilisateur.soldeXOF;
+                utilisateur.soldeXOF = 0;
+              }
 
-                if (reste > 0) {
-                  utilisateur.soldePayerAvecCodeXOF -= reste;
-                }
+              if (reste > 0) {
+                utilisateur.soldePayerAvecCodeXOF -= reste;
+              }
 
               // Mettre à jour le solde de l'utilisateur connecté
               // utilisateur.soldePayerAvecCodeXOF = Number(utilisateur.soldePayerAvecCodeXOF || 0) - Number(montant);
@@ -684,6 +991,7 @@ const listerPayement = async (req, res) => {
             "expediteur",
             "pays_dest",
             "montant_cfa",
+            "montant_gnf",
             "montant_payer",
             "montant_restant",
             "type_payement",
@@ -721,4 +1029,4 @@ const listerPayement = async (req, res) => {
   }
 };
 
-module.exports = { ajouterPayement, listerPayement, compterPayementDuJour };
+module.exports = { ajouterPayement, listerPayement, compterPayementDuJour, modifierPayement };

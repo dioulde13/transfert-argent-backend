@@ -135,39 +135,39 @@ const ajouterSortie = async (req, res) => {
       }
 
       // if (utilisateur.solde > montant_due) {
-        if (devise.paysArriver === partenaire.pays) {
-          const sortie = await Sortie.create({
-            utilisateurId,
-            partenaireId,
-            deviseId,
-            pays_exp: devise.paysArriver,
-            pays_dest: devise.paysDepart,
-            code: newCode,
-            expediteur,
-            date_creation,
-            codeEnvoyer,
-            frais,
-            telephone_receveur,
-            receveur,
-            mode_payement_devise,
-            montant_gnf: montant_due,
-            signe_1: Sign1,
-            signe_2: Sign2,
-            prix_1: Prix1,
-            prix_2: Prix2,
-            montant: montant,
-          });
+      if (devise.paysArriver === partenaire.pays) {
+        const sortie = await Sortie.create({
+          utilisateurId,
+          partenaireId,
+          deviseId,
+          pays_exp: devise.paysArriver,
+          pays_dest: devise.paysDepart,
+          code: newCode,
+          expediteur,
+          date_creation,
+          codeEnvoyer,
+          frais,
+          telephone_receveur,
+          receveur,
+          mode_payement_devise,
+          montant_gnf: montant_due,
+          signe_1: Sign1,
+          signe_2: Sign2,
+          prix_1: Prix1,
+          prix_2: Prix2,
+          montant: montant,
+        });
 
-          return res.status(201).json({
-            message: "Sortie créée avec succès.",
-            sortie,
-            // montant_preter: partenaire.montant_preter,
-          });
-        } else {
-          res.status(400).json({
-            message: `Le pays de destination ne correspond pas au pays du partenaire.`,
-          });
-        }
+        return res.status(201).json({
+          message: "Sortie créée avec succès.",
+          sortie,
+          // montant_preter: partenaire.montant_preter,
+        });
+      } else {
+        res.status(400).json({
+          message: `Le pays de destination ne correspond pas au pays du partenaire.`,
+        });
+      }
       // } else {
       //   const solde = Number(utilisateur.solde);
       //   res.status(400).json({
@@ -193,53 +193,53 @@ const ajouterSortie = async (req, res) => {
 
       const lastEntry = await Sortie.findOne({ order: [["id", "DESC"]] });
 
-      let newCode = "ABS0001";
+      let newCode = "KMC0501";
 
       if (lastEntry && lastEntry.code) {
         const numericPart = parseInt(lastEntry.code.slice(3), 10);
         if (!isNaN(numericPart)) {
-          newCode = `ABS${(numericPart + 1).toString().padStart(4, "0")}`;
+          newCode = `KMC${(numericPart + 1).toString().padStart(4, "0")}`;
         }
       }
 
       // if ((utilisateur.soldeXOF + utilisateur.soldePayerAvecCodeXOF) >= montant && (utilisateur.soldeXOF + utilisateur.soldePayerAvecCodeXOF) !==0) {
-        if (devise.paysArriver === partenaire.pays) {
-          const sortie = await Sortie.create({
-            utilisateurId,
-            partenaireId,
-            deviseId,
-            pays_exp: devise.paysArriver,
-            pays_dest: devise.paysDepart,
-            code: newCode,
-            expediteur,
-            date_creation,
-            codeEnvoyer,
-            frais,
-            telephone_receveur,
-            receveur,
-            mode_payement_devise,
-            montant_gnf: montant_due,
-            signe_1: Sign1,
-            signe_2: Sign2,
-            prix_1: Prix1,
-            prix_2: Prix2,
-            montant: montant,
-            etat: "VALIDÉE",
-          });
+      if (devise.paysArriver === partenaire.pays) {
+        const sortie = await Sortie.create({
+          utilisateurId,
+          partenaireId,
+          deviseId,
+          pays_exp: devise.paysArriver,
+          pays_dest: devise.paysDepart,
+          code: newCode,
+          expediteur,
+          date_creation,
+          codeEnvoyer,
+          frais,
+          telephone_receveur,
+          receveur,
+          mode_payement_devise,
+          montant_gnf: montant_due,
+          signe_1: Sign1,
+          signe_2: Sign2,
+          prix_1: Prix1,
+          prix_2: Prix2,
+          montant: montant,
+          etat: "VALIDÉE",
+        });
 
-          partenaire.montant_credit_Xof =
-            (partenaire.montant_credit_Xof || 0) + montant;
-          await partenaire.save();
+        partenaire.montant_credit_Xof =
+          (partenaire.montant_credit_Xof || 0) + montant;
+        await partenaire.save();
 
-          return res.status(201).json({
-            message: "Sortie créée avec succès.",
-            sortie,
-          });
-        } else {
-          res.status(400).json({
-            message: `Le pays de destination ne correspond pas au pays du partenaire.`,
-          });
-        }
+        return res.status(201).json({
+          message: "Sortie créée avec succès.",
+          sortie,
+        });
+      } else {
+        res.status(400).json({
+          message: `Le pays de destination ne correspond pas au pays du partenaire.`,
+        });
+      }
       // } else {
       //   const solde = Number(utilisateur.soldeXOF + utilisateur.soldePayerAvecCodeXOF);
       //   res.status(400).json({
@@ -299,7 +299,6 @@ const modifierSortie = async (req, res) => {
       ancienMontantCfa = sortie.montant;
     } else {
       montant_due = (montant / sortie.prix_1) * prix_2;
-
       ancienMontantCfa = sortie.montant;
     }
 
@@ -376,7 +375,17 @@ const ajouterAutreSortie = async (req, res) => {
         telephone_receveur: "",
         status: "PAYEE",
       });
-      utilisateur.solde = (utilisateur.solde || 0) - montantClient;
+      if (mode_payement === "GNF") {
+        utilisateur.solde = (utilisateur.solde || 0) + montantClient;
+      } else if (mode_payement === "XOF") {
+        utilisateur.soldePayerAvecCodeXOF = (utilisateur.soldePayerAvecCodeXOF || 0) + montantClient;
+      }
+      else if (mode_payement === "EURO") {
+        utilisateur.soldePayerAvecCodeEuro = (utilisateur.soldePayerAvecCodeEuro || 0) + montantClient;
+      }
+      else if (mode_payement === "USD") {
+        utilisateur.soldePayerAvecCodeDolar = (utilisateur.soldePayerAvecCodeDolar || 0) + montantClient;
+      }
       await utilisateur.save();
 
       res.status(201).json({
@@ -444,7 +453,7 @@ const validerSortie = async (req, res) => {
       montant_due = (sortie.montant / sortie.prix_1) * prix_2;
     }
 
-    if (utilisateur.solde > montant_due) {
+    // if (utilisateur.solde > montant_due) {
       if (sortie.etat === "NON VALIDÉE") {
         await sortie.update({
           utilisateurId: utilisateurId || sortie.utilisateurId,
@@ -472,18 +481,19 @@ const validerSortie = async (req, res) => {
           message: "Cette sortie a été déjà validée.",
         });
       }
-    } else {
-      const solde = Number(utilisateur.solde);
-      res.status(400).json({
-        message: `On ne peut pas faire une sortie de ${montant_due.toLocaleString(
-          "fr-FR",
-          { minimumFractionDigits: 0, maximumFractionDigits: 0 }
-        )} GNF, le solde dans la caisse est: ${solde.toLocaleString("fr-FR", {
-          minimumFractionDigits: 0,
-          maximumFractionDigits: 0,
-        })} GNF`,
-      });
-    }
+    // }
+    //  else {
+    //   const solde = Number(utilisateur.solde);
+    //   res.status(400).json({
+    //     message: `On ne peut pas faire une sortie de ${montant_due.toLocaleString(
+    //       "fr-FR",
+    //       { minimumFractionDigits: 0, maximumFractionDigits: 0 }
+    //     )} GNF, le solde dans la caisse est: ${solde.toLocaleString("fr-FR", {
+    //       minimumFractionDigits: 0,
+    //       maximumFractionDigits: 0,
+    //     })} GNF`,
+    //   });
+    // }
   } catch (error) {
     console.error("Erreur lors de la validation de la sortie :", error);
     res.status(500).json({ message: "Erreur interne du serveur." });

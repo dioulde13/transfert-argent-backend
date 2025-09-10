@@ -125,6 +125,11 @@ const Entre = sequelize.define("Entre", {
     allowNull: false,
     defaultValue: "CASH",
   },
+   mode_payement: {
+    type: DataTypes.ENUM("GNF", "XOF", "EURO", "USD"),
+    allowNull: false,
+    defaultValue: "GNF",
+  },
   payement_type: {
     type: DataTypes.ENUM("COMPLET", "NON COMPLET"),
     allowNull: false,

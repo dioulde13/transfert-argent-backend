@@ -11,5 +11,6 @@ router.get('/liste', payementController.listerPayement);
 
 router.get('/compte', payementController.compterPayementDuJour);
 
+router.put("/modifier/:id", payementController.modifierPayement);
 
 module.exports = router;

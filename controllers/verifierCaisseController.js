@@ -7,31 +7,14 @@ const ajouterCaisse = async (req, res) => {
   try {
     const {
       utilisateurId,
-      prix_dollar,
-      prix_euro,
-      solde_cfa,
-      prix_cfa,
-      solde_dollars,
-      solde_euro,
-      solde_gnf
+      prix_dollar = 0,
+      prix_euro = 0,
+      prix_cfa = 0,
+      solde_dollars = 0,
+      solde_euro = 0,
+      solde_cfa = 0,
+      solde_gnf = 0
     } = req.body;
-
-    // Liste des champs à vérifier
-    // const champs = [
-    //   utilisateurId,
-    //   prix_dollar,
-    //   prix_euro,
-    //   solde_cfa,
-    //   prix_cfa,
-    //   solde_dollars,
-    //   solde_euro,
-    //   solde_gnf
-    // ];
-
-    // // Vérifie si un des champs est undefined ou null (0 est accepté)
-    // if (champs.some(champ => champ === undefined || champ === null)) {
-    //   return res.status(400).json({ message: 'Tous les champs sont obligatoires.' });
-    // }
 
     // Création de la caisse
     const caisse = await VerifierCaisse.create({

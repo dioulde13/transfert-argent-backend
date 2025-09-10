@@ -257,10 +257,10 @@ const modifierEntre = async (req, res) => {
 
 const ajouterAutreEntre = async (req, res) => {
   try {
-    const { utilisateurId, nomCLient, montantClient, date_creation } = req.body;
+    const { utilisateurId, nomCLient, montantClient, date_creation, mode_payement } = req.body;
 
     // Vérifier si tous les champs obligatoires sont présents
-    if (!utilisateurId || !nomCLient || !montantClient || !date_creation) {
+    if (!utilisateurId || !nomCLient || !montantClient || !date_creation || !mode_payement) {
       return res.status(400).json({
         message: "Tous les champs obligatoires doivent être remplis.",
       });
@@ -275,7 +275,6 @@ const ajouterAutreEntre = async (req, res) => {
     // Générer un code à 6 chiffres
     const code = 'AB' + Math.floor(1000 + Math.random() * 9000).toString();
 
-    // Créer une nouvelle entrée avec un code généré automatiquement
     const entre = await Entre.create({
       utilisateurId,
       partenaireId: null,
@@ -298,9 +297,17 @@ const ajouterAutreEntre = async (req, res) => {
       telephone_receveur: "",
       status: "PAYEE",
     });
-
-    // Mettre à jour le solde de l'utilisateur
-    utilisateur.solde = (utilisateur.solde || 0) + montantClient;
+    if (mode_payement === "GNF") {
+      utilisateur.solde = (utilisateur.solde || 0) + montantClient;
+    } else if (mode_payement === "XOF") {
+      utilisateur.soldePayerAvecCodeXOF = (utilisateur.soldePayerAvecCodeXOF || 0) + montantClient;
+    }
+    else if (mode_payement === "EURO") {
+      utilisateur.soldePayerAvecCodeEuro = (utilisateur.soldePayerAvecCodeEuro || 0) + montantClient;
+    }
+    else if (mode_payement === "USD") {
+      utilisateur.soldePayerAvecCodeDolar = (utilisateur.soldePayerAvecCodeDolar || 0) + montantClient;
+    }
     await utilisateur.save();
 
     res.status(201).json({
@@ -526,16 +533,16 @@ const annulerEntre = async (req, res) => {
 
 const payerEntrees = async (req, res) => {
   try {
-    const { ids } = req.body; 
+    const { ids } = req.body;
 
     if (!ids || ids.length === 0) {
       return res.status(400).json({ message: "Aucune entrée sélectionnée." });
     }
 
-    
+
     const entreesExistantes = await Entre.findAll({
       where: { id: ids },
-      attributes: ["id", "type"], 
+      attributes: ["id", "type"],
     });
 
     const dejaPayees = entreesExistantes.filter((entre) => entre.type === "R");
@@ -544,7 +551,7 @@ const payerEntrees = async (req, res) => {
       return res.status(400).json({
         message:
           "Certaines entrées ont déjà été payées et ne peuvent être payées deux fois.",
-        entrees: dejaPayees.map((entre) => entre.id), 
+        entrees: dejaPayees.map((entre) => entre.id),
       });
     }
 
