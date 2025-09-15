@@ -23,9 +23,7 @@ const modifierPayement = async (req, res) => {
     let entre = payement.entreId ? await Entre.findByPk(payement.entreId) : null;
     let sortie = payement.sortieId ? await Sortie.findByPk(payement.sortieId) : null;
 
-
     // Calculs ou validations avant modification si nécessaire
-    // Exemple : vérifier que le montant est correct
     if (montant <= 0) {
       return res.status(400).json({ message: "Le montant doit être supérieur à 0." });
     }
@@ -37,127 +35,520 @@ const modifierPayement = async (req, res) => {
     payement.signe = signe ?? payement.signe;
     payement.date_creation = date_creation ?? payement.date_creation;
 
-
     if (entre) {
+      if (signe === "XOF") {
+        if (Number(prix) !== Number(entre.previous('prix'))) {
+          return res
+            .status(404)
+            .json({ message: `le prix saisi: ${prix} est different au prix du code qui est: ${payement.previous('prix')}` });
+        }
+      }
+
       const payements = await Payement.findAll({ where: { entreId: entre.id } });
 
       const ancienMontant = Number(payement.previous('montant'));
       const encienPrix = Number(payement.previous('prix'));
       const nouveauMontant = Number(payement.montant);
       const nouveauPrix = Number(payement.prix);
-
       let totalPaye, totalEncien, nouveauMontants, soustraction, montantPayer, montantRestant;
 
-      if (signe === "USD" || signe === "EURO") {
-        totalPaye = payements.reduce((total, p) => total + (Number(p.montant) / 100 * Number(p.prix)), 0);
+      if ((signe === "USD" || signe === "EURO") && ((payement.previous('signe') === "USD") || payement.previous('signe') === "EURO")) {
+        // console.log("Encien USD ou EURO  Nouveau EURO ou USD");
+        const totalPaye = payements.reduce((total, p) => {
+          // console.log("Montant", p.montant);
+          // console.log("Prix", p.prix);
+          // console.log("Signe", p.signe);
+
+          if (p.signe === "XOF") {
+            return total + (Number(p.montant) / 5000 * Number(p.prix));
+          } else if (p.signe === "EURO") {
+            return total + (Number(p.montant) / 100 * Number(p.prix));
+          } else if (p.signe === "USD") {
+            return total + (Number(p.montant) / 100 * Number(p.prix));
+          } else if (p.signe === "GNF") {
+
+            return total + (Number(p.montant));
+          }
+          // si aucun signe ne correspond, retourner simplement total
+          return total;
+        }, 0);
+
+        // console.log("Sommme total encien Payer", totalPaye);
+
         totalEncien = (ancienMontant / 100) * encienPrix;
         nouveauMontants = (nouveauMontant / 100) * nouveauPrix;
         soustraction = totalPaye - totalEncien;
         montantPayer = nouveauMontants + soustraction;
+
         montantRestant = Number(entre.montant_gnf) - montantPayer;
+
+        // console.log("Encien  montant", totalEncien);
+        // console.log("Nouveau montant", nouveauMontant);
+        // console.log("Nouveau prix", nouveauPrix);
+        // console.log("soustraction", soustraction);
+        // console.log("Montant Payer", montantPayer);
+        // console.log("Montant Restant ", montantRestant);
+
         entre.montant_payer = montantPayer;
         entre.montant_restant = montantRestant;
-      } else {
-        totalPaye = payements.reduce((total, p) => total + Number(p.montant), 0);
+      }
+
+      if ((signe === "XOF") && ((payement.previous('signe') === "USD") || payement.previous('signe') === "EURO")) {
+        console.log("Encien USD ou EURO  Nouveau XOF");
+        const totalPaye = payements.reduce((total, p) => {
+          // console.log("Montant", p.montant);
+          // console.log("Prix", p.prix);
+          // console.log("Signe", p.signe);
+
+          if (p.signe === "XOF") {
+            return total + (Number(p.montant) / 5000 * Number(p.prix));
+          } else if (p.signe === "EURO") {
+            return total + (Number(p.montant) / 100 * Number(p.prix));
+          } else if (p.signe === "USD") {
+            return total + (Number(p.montant) / 100 * Number(p.prix));
+          } else if (p.signe === "GNF") {
+
+            return total + (Number(p.montant));
+          }
+          // si aucun signe ne correspond, retourner simplement total
+          return total;
+        }, 0);
+
+        // console.log("Sommme total encien Payer", totalPaye);
+
+        totalEncien = (ancienMontant / 100) * encienPrix;
+        nouveauMontants = (nouveauMontant / 5000) * nouveauPrix;
+        soustraction = totalPaye - totalEncien;
+        montantPayer = nouveauMontants + soustraction;
+
+        montantRestant = Number(entre.montant_gnf) - montantPayer;
+
+        // console.log("Encien montant", totalEncien);
+        // console.log("Nouveau prix", encienPrix);
+        // console.log("Nouveau montant", nouveauMontant);
+        // console.log("Nouveau prix", nouveauPrix);
+        // console.log("Montant", nouveauMontants);
+        // console.log("soustraction", soustraction);
+        // console.log("Montant Payer", montantPayer);
+        // console.log("Montant Restant ", montantRestant);
+
+        entre.montant_payer = montantPayer;
+        entre.montant_restant = montantRestant;
+      }
+
+      if ((signe === "GNF") && ((payement.previous('signe') === "USD") || payement.previous('signe') === "EURO")) {
+        // console.log("Encien USD ou EURO  Nouveau GNF");
+        const totalPaye = payements.reduce((total, p) => {
+          // console.log("Montant", p.montant);
+          // console.log("Prix", p.prix);
+          // console.log("Signe", p.signe);
+
+          if (p.signe === "XOF") {
+            return total + (Number(p.montant) / 5000 * Number(p.prix));
+          } else if (p.signe === "EURO") {
+            return total + (Number(p.montant) / 100 * Number(p.prix));
+          } else if (p.signe === "USD") {
+            return total + (Number(p.montant) / 100 * Number(p.prix));
+          } else if (p.signe === "GNF") {
+
+            return total + (Number(p.montant));
+          }
+          // si aucun signe ne correspond, retourner simplement total
+          return total;
+        }, 0);
+
+        // console.log("Sommme total encien Payer", totalPaye);
+
+        totalEncien = (ancienMontant / 100) * encienPrix;
+        nouveauMontants = nouveauMontant;
+        soustraction = totalPaye - totalEncien;
+        montantPayer = nouveauMontants + soustraction;
+
+        montantRestant = Number(entre.montant_gnf) - montantPayer;
+
+        // console.log("Encien montant", totalEncien);
+        // console.log("Nouveau prix", encienPrix);
+        // console.log("Nouveau montant", nouveauMontant);
+        // console.log("Nouveau prix", nouveauPrix);
+        // console.log("Montant", nouveauMontants);
+        // console.log("soustraction", soustraction);
+        // console.log("Montant Payer", montantPayer);
+        // console.log("Montant Restant ", montantRestant);
+
+        entre.montant_payer = montantPayer;
+        entre.montant_restant = montantRestant;
+      }
+
+      else if ((signe === "USD" || signe === "EURO") && ((payement.previous('signe') === "XOF"))) {
+        // console.log("Encien XOF Nouveau USD ou EURO");
+        const totalPaye = payements.reduce((total, p) => {
+          // console.log("Montant", p.montant);
+          // console.log("Prix", p.prix);
+          // console.log("Signe", p.signe);
+
+          if (p.signe === "XOF") {
+            return total + (Number(p.montant) / 5000 * Number(p.prix));
+          } else if (p.signe === "EURO") {
+            return total + (Number(p.montant) / 100 * Number(p.prix));
+          } else if (p.signe === "USD") {
+            return total + (Number(p.montant) / 100 * Number(p.prix));
+          } else if (p.signe === "GNF") {
+            return total + (Number(p.montant));
+          }
+          // si aucun signe ne correspond, retourner simplement total
+          return total;
+        }, 0);
+
+        // console.log("Sommme total encien Payer", totalPaye);
+
+        totalEncien = (ancienMontant / 5000) * encienPrix;
+        soustraction = totalPaye - totalEncien;
+
+        nouveauMontants = (nouveauMontant / 100) * nouveauPrix;
+        montantPayer = nouveauMontants + soustraction;
+
+        montantRestant = Number(entre.montant_gnf) - montantPayer;
+
+        // console.log("Encien  montant", totalEncien);
+        // console.log("Nouveau montant", nouveauMontant);
+        // console.log("Nouveau prix", nouveauPrix);
+        // console.log("soustraction", soustraction);
+        // console.log("Montant Payer", montantPayer);
+        // console.log("Montant Restant ", montantRestant);
+
+        entre.montant_payer = montantPayer;
+        entre.montant_restant = montantRestant;
+      }
+      else if ((signe === "GNF") && ((payement.previous('signe') === "XOF"))) {
+        console.log("encien XOF nouveau GNF");
+        const totalPaye = payements.reduce((total, p) => {
+          // console.log("Montant", p.montant);
+          // console.log("Prix", p.prix);
+          // console.log("Signe", p.signe);
+          if (p.signe === "XOF") {
+            return total + (Number(p.montant) / 5000 * Number(p.prix));
+          } else if (p.signe === "EURO") {
+            return total + (Number(p.montant) / 100 * Number(p.prix));
+          } else if (p.signe === "USD") {
+            return total + (Number(p.montant) / 100 * Number(p.prix));
+          }
+          else if (p.signe === "GNF") {
+            return total + (Number(p.montant));
+          }
+          // si aucun signe ne correspond, retourner simplement total
+          return total;
+        }, 0);
+
+        // console.log("Sommme total encien Payer", totalPaye);
+
+        const totalEncien = (ancienMontant / 5000) * encienPrix;
+        const soustraction = totalPaye - totalEncien;
+
+        // console.log({ totalEncien, soustraction });
+
+        nouveauMontants = (nouveauMontant);
+        montantPayer = nouveauMontants + soustraction;
+
+        montantRestant = Number(entre.montant_gnf) - montantPayer;
+
+        // console.log("Encien  montant", totalEncien);
+        // console.log("Nouveau montant", nouveauMontant);
+        // console.log("Nouveau prix", nouveauPrix);
+        // console.log("soustraction", soustraction);
+        // console.log("Montant Payer", montantPayer);
+        // console.log("Montant Restant ", montantRestant);
+
+        entre.montant_payer = montantPayer;
+        entre.montant_restant = montantRestant;
+      }
+      else if (signe === "XOF" && ((payement.previous('signe') === "GNF"))) {
+        // console.log("Encien GNF nouveau XOF");
+        const totalPaye = payements.reduce((total, p) => {
+          // console.log("Montant", p.montant);
+          // console.log("Prix", p.prix);
+          // console.log("Signe", p.signe);
+
+          if (p.signe === "XOF") {
+            return total + (Number(p.montant) / 5000 * Number(p.prix));
+          } else if (p.signe === "EURO") {
+            return total + (Number(p.montant) / 100 * Number(p.prix));
+          } else if (p.signe === "USD") {
+            return total + (Number(p.montant) / 100 * Number(p.prix));
+          }
+          else if (p.signe === "GNF") {
+            return total + (Number(p.montant));
+          }
+          return total;
+        }, 0);
+
+        // console.log("Sommme total encien Payer", totalPaye);
+
+        totalEncien = ancienMontant;
+        nouveauMontants = (nouveauMontant / 5000) * nouveauPrix;
+        soustraction = totalPaye - totalEncien;
+        // console.log({ totalEncien, soustraction });
+
+        montantPayer = nouveauMontants + soustraction;
+        montantRestant = Number(entre.montant_gnf) - montantPayer;
+
+        // console.log("Encien  montant", totalEncien);
+        // console.log("Nouveau montant", nouveauMontant);
+        // console.log("Nouveau prix", nouveauPrix);
+        // console.log("soustraction", soustraction);
+        // console.log("Montant Payer", montantPayer);
+        // console.log("Montant Restant ", montantRestant);
+
+        entre.montant_payer = montantPayer;
+        entre.montant_restant = montantRestant;
+      }
+      else if ((signe === "EURO" || signe === "USD") && ((payement.previous('signe') === "GNF"))) {
+        console.log("Encien GNF nouveau EURO OU USD");
+        const totalPaye = payements.reduce((total, p) => {
+          // console.log("Montant", p.montant);
+          // console.log("Prix", p.prix);
+          // console.log("Signe", p.signe);
+
+          if (p.signe === "XOF") {
+            return total + (Number(p.montant) / 5000 * Number(p.prix));
+          } else if (p.signe === "EURO") {
+            return total + (Number(p.montant) / 100 * Number(p.prix));
+          } else if (p.signe === "USD") {
+            return total + (Number(p.montant) / 100 * Number(p.prix));
+          }
+          else if (p.signe === "GNF") {
+            return total + (Number(p.montant));
+          }
+          return total;
+        }, 0);
+
+        // console.log("Sommme total encien Payer", totalPaye);
+
+        totalEncien = ancienMontant;
+        nouveauMontants = (nouveauMontant / 100) * nouveauPrix;
+
+        soustraction = totalPaye - totalEncien;
+
+        // console.log({ totalEncien, soustraction });
+
+        montantPayer = nouveauMontants + soustraction;
+
+        montantRestant = Number(entre.montant_gnf) - montantPayer;
+
+        // console.log("Encien  montant", totalEncien);
+        // console.log("Nouveau montant", nouveauMontant);
+        // console.log("Nouveau prix", nouveauPrix);
+        // console.log("soustraction", soustraction);
+        // console.log("Montant Payer", montantPayer);
+        // console.log("Montant Restant ", montantRestant);
+
+        entre.montant_payer = montantPayer;
+        entre.montant_restant = montantRestant;
+      }
+      else if ((signe === "XOF") && ((payement.previous('signe') === "XOF"))) {
+        console.log("Encien XOF nouveau XOF");
+        const totalPaye = payements.reduce((total, p) => {
+          // console.log("Montant", p.montant);
+          // console.log("Prix", p.prix);
+          // console.log("Signe", p.signe);
+
+          if (p.signe === "XOF") {
+            return total + (Number(p.montant) / 5000 * Number(p.prix));
+          } else if (p.signe === "EURO") {
+            return total + (Number(p.montant) / 100 * Number(p.prix));
+          } else if (p.signe === "USD") {
+            return total + (Number(p.montant) / 100 * Number(p.prix));
+          }
+          else if (p.signe === "GNF") {
+            return total + (Number(p.montant));
+          }
+          return total;
+        }, 0);
+
+        // console.log("Sommme total encien Payer", totalPaye);
+
+        totalEncien = (ancienMontant / 5000) * encienPrix;
+        nouveauMontants = (nouveauMontant / 5000) * nouveauPrix;
+
+        soustraction = totalPaye - totalEncien;
+
+        montantPayer = nouveauMontants + soustraction;
+
+        montantRestant = Number(entre.montant_gnf) - montantPayer;
+
+        // console.log("Encien  montant", totalEncien);
+        // console.log("Nouveau montant", nouveauMontant);
+        // console.log("Nouveau prix", nouveauPrix);
+        // console.log("soustraction", soustraction);
+        // console.log("Montant Payer", montantPayer);
+        // console.log("Montant Restant ", montantRestant);
+
+        entre.montant_payer = montantPayer;
+        entre.montant_restant = montantRestant;
+      }
+      else if (signe === "GNF" && payement.previous('signe') === "GNF") {
+        console.log("Encien GNF Nouveau GNF");
+        const totalPaye = payements.reduce((total, p) => {
+          // console.log("Montant", p.montant);
+          // console.log("Prix", p.prix);
+          // console.log("Signe", p.signe);
+
+          if (p.signe === "XOF") {
+            return total + (Number(p.montant) / 5000 * Number(p.prix));
+          } else if (p.signe === "EURO") {
+            return total + (Number(p.montant) / 100 * Number(p.prix));
+          } else if (p.signe === "USD") {
+            return total + (Number(p.montant) / 100 * Number(p.prix));
+          }
+          else if (p.signe === "GNF") {
+            return total + (Number(p.montant));
+          }
+          return total;
+        }, 0);
+
+        // console.log("Sommme total encien Payer", totalPaye);
+
         totalEncien = ancienMontant;
         nouveauMontants = nouveauMontant;
         soustraction = totalPaye - totalEncien;
         montantPayer = nouveauMontants + soustraction;
         montantRestant = Number(entre.montant_gnf) - montantPayer;
+
+        // console.log("Encien  montant", totalEncien);
+        // console.log("Nouveau montant", nouveauMontant);
+        // console.log("Nouveau prix", nouveauPrix);
+        // console.log("soustraction", soustraction);
+        // console.log("Montant Payer", montantPayer);
+        // console.log("Montant Restant ", montantRestant);
+
         entre.montant_payer = montantPayer;
         entre.montant_restant = montantRestant;
       }
 
-      if (signe === "USD" && payement.signe === "USD" && utilisateur.soldePayerAvecCodeDolar >= ancienMontant) {
+
+      if (signe === "USD" && payement.previous('signe') === "USD" && utilisateur.soldePayerAvecCodeDolar >= ancienMontant) {
+        // console.log("USD->USD");
+
         utilisateur.soldePayerAvecCodeDolar -= Number(ancienMontant);
         utilisateur.soldePayerAvecCodeDolar += Number(montant);
         payement.montant = Number(montant);
       }
-      else if (signe === "EURO" && payement.signe === "EURO" && utilisateur.soldePayerAvecCodeEuro >= ancienMontant) {
+      else if (signe === "EURO" && payement.previous('signe') === "EURO" && utilisateur.soldePayerAvecCodeEuro >= ancienMontant) {
+        // console.log("EURO->EURO");
+
         utilisateur.soldePayerAvecCodeEuro -= ancienMontant;
         utilisateur.soldePayerAvecCodeEuro += montant;
         payement.montant = Number(montant);
-      } else if (signe === "XOF" && payement.signe === "XOF" && utilisateur.soldePayerAvecCodeXOF >= ancienMontant) {
-        utilisateur.soldePayerAvecCodeXOF -= Number(ancienMontant);
-        utilisateur.soldePayerAvecCodeXOF += Number(montant);
-        payement.montant = Number(montant);
-      } else if (payement.signe === "GNF" && utilisateur.solde >= ancienMontant) {
-        utilisateur.solde -= Number(ancienMontant);
-        utilisateur.solde += Number(montant);
-        payement.montant = Number(montant);
-      } else if (signe === "EURO" && payement.signe === "USD" && utilisateur.soldePayerAvecCodeDolar >= ancienMontant) {
-        utilisateur.soldePayerAvecCodeDolar -= Number(ancienMontant);
-        utilisateur.soldePayerAvecCodeEuro += Number(montant);
-        payement.montant = Number(montant);
-      }
-      else if (signe === "USD" && payement.signe === "EURO" && utilisateur.soldePayerAvecCodeEuro >= ancienMontant) {
-        utilisateur.soldePayerAvecCodeEuro -= Number(ancienMontant);
-        utilisateur.soldePayerAvecCodeDolar += Number(montant);
-        payement.montant = Number(montant);
-      }
-      else if (signe === "XOF" && payement.signe === "EURO" && utilisateur.soldePayerAvecCodeEuro >= ancienMontant) {
-        utilisateur.soldePayerAvecCodeEuro -= Number(ancienMontant);
-        utilisateur.soldePayerAvecCodeXOF += Number(montant);
-        payement.montant = Number(montant);
-      }
-      else if (signe === "EURO" && payement.signe === "XOF" && utilisateur.soldePayerAvecCodeXOF >= ancienMontant) {
-        utilisateur.soldePayerAvecCodeXOF -= Number(ancienMontant);
-        utilisateur.soldePayerAvecCodeEuro += Number(montant);
-        payement.montant = Number(montant);
-      }
-      else if (signe === "XOF" && payement.signe === "USD" && utilisateur.soldePayerAvecCodeDolar >= ancienMontant) {
-        utilisateur.soldePayerAvecCodeDolar -= Number(ancienMontant);
-        utilisateur.soldePayerAvecCodeXOF += Number(montant);
-        payement.montant = Number(montant);
-      }
-      else if (signe === "USD" && payement.signe === "XOF" && utilisateur.soldePayerAvecCodeXOF >= ancienMontant) {
-        utilisateur.soldePayerAvecCodeXOF -= Number(ancienMontant);
-        utilisateur.soldePayerAvecCodeDolar += Number(montant);
-        payement.montant = Number(montant);
-      }
+      } else if (signe === "XOF" && payement.previous('signe') === "XOF" && utilisateur.soldePayerAvecCodeXOF >= ancienMontant) {
+        // console.log("XOF->XOF");
 
-      //GNF et les autres signe
-      else if (payement.signe === "GNF" && signe === "XOF" && utilisateur.solde >= ancienMontant) {
-        utilisateur.solde -= Number(ancienMontant);
+        utilisateur.soldePayerAvecCodeXOF -= Number(ancienMontant);
         utilisateur.soldePayerAvecCodeXOF += Number(montant);
         payement.montant = Number(montant);
-      }
-      else if (payement.signe === "GNF" && signe === "USD" && utilisateur.solde >= ancienMontant) {
-        utilisateur.solde -= Number(ancienMontant);
-        utilisateur.soldePayerAvecCodeDolar += Number(montant);
-        payement.montant = Number(montant);
-      }
-      else if (payement.signe === "GNF" && signe === "EURO" && utilisateur.solde >= ancienMontant) {
-        utilisateur.solde -= Number(ancienMontant);
-        utilisateur.soldePayerAvecCodeEuro += Number(montant);
-        payement.montant = Number(montant);
-      }
+      } else if (payement.previous('signe') === "GNF" && signe === "GNF" && utilisateur.solde >= ancienMontant) {
+        // console.log("GNF->GNF");
 
-      //les autres signe a GNF 
-      else if (payement.signe === "XOF" && signe === "GNF" && utilisateur.soldePayerAvecCodeXOF >= ancienMontant) {
-        utilisateur.soldePayerAvecCodeXOF -= Number(ancienMontant);
+        utilisateur.solde -= Number(ancienMontant);
         utilisateur.solde += Number(montant);
         payement.montant = Number(montant);
-      }
-      else if (payement.signe === "USD" && signe === "GNF" && utilisateur.soldePayerAvecCodeDolar >= ancienMontant) {
-        utilisateur.soldePayerAvecCodeDolar -= Number(ancienMontant);
-        utilisateur.solde += Number(montant);
-        payement.montant = Number(montant);
-      }
-      else if (payement.signe === "EURO" && signe === "GNF" && utilisateur.soldePayerAvecCodeEuro >= ancienMontant) {
-        utilisateur.soldePayerAvecCodeEuro -= Number(ancienMontant);
-        utilisateur.solde += Number(montant);
-        payement.montant = Number(montant);
-      }
-      else {
-        return res.status(404).json({
-          message: `Le montant dans la caisse est inferieure au montant:${ancienMontant.toLocaleString(
-            "fr-FR",
-            { minimumFractionDigits: 0, maximumFractionDigits: 0 }
-          )}`
-        });
-      }
+      } else
+        if (signe === "EURO" && payement.previous('signe') === "USD" && utilisateur.soldePayerAvecCodeDolar >= ancienMontant) {
+          // console.log("USD->EURO");
+
+          utilisateur.soldePayerAvecCodeDolar -= Number(ancienMontant);
+          utilisateur.soldePayerAvecCodeEuro += Number(montant);
+          payement.montant = Number(montant);
+        }
+
+        else if (signe === "USD" && payement.previous('signe') === "EURO" && utilisateur.soldePayerAvecCodeEuro >= ancienMontant) {
+          // console.log("EURO->USD");
+
+          utilisateur.soldePayerAvecCodeEuro -= Number(ancienMontant);
+          utilisateur.soldePayerAvecCodeDolar += Number(montant);
+          payement.montant = Number(montant);
+        }
+        else if (signe === "XOF" && payement.previous('signe') === "EURO" && utilisateur.soldePayerAvecCodeEuro >= ancienMontant) {
+          // console.log("EURO->XOF");
+
+          utilisateur.soldePayerAvecCodeEuro -= Number(ancienMontant);
+          utilisateur.soldePayerAvecCodeXOF += Number(montant);
+          payement.montant = Number(montant);
+        }
+        else if (signe === "EURO" && payement.previous('signe') === "XOF" && utilisateur.soldePayerAvecCodeXOF >= ancienMontant) {
+          utilisateur.soldePayerAvecCodeXOF -= Number(ancienMontant);
+          utilisateur.soldePayerAvecCodeEuro += Number(montant);
+          payement.montant = Number(montant);
+        }
+        else if (signe === "XOF" && payement.previous('signe') === "USD" && utilisateur.soldePayerAvecCodeDolar >= ancienMontant) {
+          // console.log("USD->XOF");
+
+          utilisateur.soldePayerAvecCodeDolar -= Number(ancienMontant);
+          utilisateur.soldePayerAvecCodeXOF += Number(montant);
+          payement.montant = Number(montant);
+        }
+        else if (signe === "USD" && payement.previous('signe') === "XOF" && utilisateur.soldePayerAvecCodeXOF >= ancienMontant) {
+          // console.log("XOF->USD");
+
+          utilisateur.soldePayerAvecCodeXOF -= Number(ancienMontant);
+          utilisateur.soldePayerAvecCodeDolar += Number(montant);
+          payement.montant = Number(montant);
+        }
+
+        //GNF et les autres signe
+        else if (payement.previous('signe') === "GNF" && signe === "XOF" && utilisateur.solde >= ancienMontant) {
+          // console.log("GNF->XOF");
+
+          utilisateur.solde -= Number(ancienMontant);
+          utilisateur.soldePayerAvecCodeXOF += Number(montant);
+          payement.montant = Number(montant);
+        }
+        else if (payement.previous('signe') === "GNF" && signe === "USD" && utilisateur.solde >= ancienMontant) {
+          // console.log("GNF->USD");
+
+          utilisateur.solde -= Number(ancienMontant);
+          utilisateur.soldePayerAvecCodeDolar += Number(montant);
+          payement.montant = Number(montant);
+        }
+        else if (payement.previous('signe') === "GNF" && signe === "EURO" && utilisateur.solde >= ancienMontant) {
+          // console.log("GNF->EURO");
+
+          utilisateur.solde -= Number(ancienMontant);
+          utilisateur.soldePayerAvecCodeEuro += Number(montant);
+          payement.montant = Number(montant);
+        }
+
+        //les autres signe a GNF 
+        else if (payement.previous('signe') === "XOF" && signe === "GNF" && utilisateur.soldePayerAvecCodeXOF >= ancienMontant) {
+          // console.log("XOF->GNF");
+
+          utilisateur.soldePayerAvecCodeXOF -= Number(ancienMontant);
+          utilisateur.solde += Number(montant);
+          payement.montant = Number(montant);
+        }
+        else if (payement.previous('signe') === "USD" && signe === "GNF" && utilisateur.soldePayerAvecCodeDolar >= ancienMontant) {
+          // console.log("USD->GNF");
+
+          utilisateur.soldePayerAvecCodeDolar -= Number(ancienMontant);
+          utilisateur.solde += Number(montant);
+          payement.montant = Number(montant);
+        }
+        else if (payement.previous('signe') === "EURO" && signe === "GNF" && utilisateur.soldePayerAvecCodeEuro >= ancienMontant) {
+          // console.log("EURO->GNF");
+
+          utilisateur.soldePayerAvecCodeEuro -= Number(ancienMontant);
+          utilisateur.solde += Number(montant);
+          payement.montant = Number(montant);
+        }
+        else {
+          return res.status(404).json({
+            message: `Le montant dans la caisse est inferieure au montant:${ancienMontant.toLocaleString(
+              "fr-FR",
+              { minimumFractionDigits: 0, maximumFractionDigits: 0 }
+            )}`
+          });
+        }
       if (montantPayer > entre.montant_gnf) {
+        console.log(montantPayer);
+        console.log(entre.montant_gnf);
         return res.status(400).json({
           message: `Le montant payé est supérieur au montant restant`,
         });
@@ -175,138 +566,593 @@ const modifierPayement = async (req, res) => {
 
 
     if (sortie) {
+      // console.log(sortie.previous('prix_2'));
+      if (signe === "XOF") {
+        if (Number(prix) !== Number(sortie.previous('prix_2'))) {
+          return res
+            .status(404)
+            .json({ message: `le prix saisi: ${prix} est different au prix du code qui est: ${sortie.previous('prix_2')}` });
+        }
+      }
+
       const payements = await Payement.findAll({ where: { sortieId: sortie.id } });
 
       const ancienMontant = Number(payement.previous('montant'));
       const encienPrix = Number(payement.previous('prix'));
       const nouveauMontant = Number(payement.montant);
       const nouveauPrix = Number(payement.prix);
+      // console.log("Sortie");
+      // console.log(payement.previous('signe'));
 
       let totalPaye, totalEncien, nouveauMontants, soustraction, montantPayer, montantRestant;
 
-      if (signe === "USD" || signe === "EURO") {
-        totalPaye = payements.reduce((total, p) => total + (Number(p.montant) / 100 * Number(p.prix)), 0);
+      if ((signe === "USD" || signe === "EURO") && ((payement.previous('signe') === "USD") || payement.previous('signe') === "EURO")) {
+        // console.log("Encien USD ou EURO  Nouveau EURO ou USD");
+        const totalPaye = payements.reduce((total, p) => {
+          // console.log("Montant", p.montant);
+          // console.log("Prix", p.prix);
+          // console.log("Signe", p.signe);
+
+          if (p.signe === "XOF") {
+            return total + (Number(p.montant) / 5000 * Number(p.prix));
+          } else if (p.signe === "EURO") {
+            return total + (Number(p.montant) / 100 * Number(p.prix));
+          } else if (p.signe === "USD") {
+            return total + (Number(p.montant) / 100 * Number(p.prix));
+          } else if (p.signe === "GNF") {
+
+            return total + (Number(p.montant));
+          }
+          // si aucun signe ne correspond, retourner simplement total
+          return total;
+        }, 0);
+
+        // console.log("Sommme total encien Payer", totalPaye);
+
         totalEncien = (ancienMontant / 100) * encienPrix;
         nouveauMontants = (nouveauMontant / 100) * nouveauPrix;
         soustraction = totalPaye - totalEncien;
         montantPayer = nouveauMontants + soustraction;
+
         montantRestant = Number(sortie.montant_gnf) - montantPayer;
+
+        // console.log("Encien  montant", totalEncien);
+        // console.log("Nouveau montant", nouveauMontant);
+        // console.log("Nouveau prix", nouveauPrix);
+        // console.log("soustraction", soustraction);
+        // console.log("Montant Payer", montantPayer);
+        // console.log("Montant Restant ", montantRestant);
+
         sortie.montant_payer = montantPayer;
         sortie.montant_restant = montantRestant;
-      } else {
-        totalPaye = payements.reduce((total, p) => total + Number(p.montant), 0);
+      }
+
+      if ((signe === "XOF") && ((payement.previous('signe') === "USD") || payement.previous('signe') === "EURO")) {
+        console.log("Encien USD ou EURO  Nouveau XOF");
+        const totalPaye = payements.reduce((total, p) => {
+          // console.log("Montant", p.montant);
+          // console.log("Prix", p.prix);
+          // console.log("Signe", p.signe);
+
+          if (p.signe === "XOF") {
+            return total + (Number(p.montant) / 5000 * Number(p.prix));
+          } else if (p.signe === "EURO") {
+            return total + (Number(p.montant) / 100 * Number(p.prix));
+          } else if (p.signe === "USD") {
+            return total + (Number(p.montant) / 100 * Number(p.prix));
+          } else if (p.signe === "GNF") {
+
+            return total + (Number(p.montant));
+          }
+          // si aucun signe ne correspond, retourner simplement total
+          return total;
+        }, 0);
+
+        // console.log("Sommme total encien Payer", totalPaye);
+
+        totalEncien = (ancienMontant / 100) * encienPrix;
+        nouveauMontants = (nouveauMontant / 5000) * nouveauPrix;
+        soustraction = totalPaye - totalEncien;
+        montantPayer = nouveauMontants + soustraction;
+
+        montantRestant = Number(sortie.montant_gnf) - montantPayer;
+
+        // console.log("Encien montant", totalEncien);
+        // console.log("Nouveau prix", encienPrix);
+        // console.log("Nouveau montant", nouveauMontant);
+        // console.log("Nouveau prix", nouveauPrix);
+        // console.log("Montant", nouveauMontants);
+        // console.log("soustraction", soustraction);
+        // console.log("Montant Payer", montantPayer);
+        // console.log("Montant Restant ", montantRestant);
+
+        sortie.montant_payer = montantPayer;
+        sortie.montant_restant = montantRestant;
+      }
+
+      if ((signe === "GNF") && ((payement.previous('signe') === "USD") || payement.previous('signe') === "EURO")) {
+        console.log("Encien USD ou EURO  Nouveau GNF");
+        const totalPaye = payements.reduce((total, p) => {
+          // console.log("Montant", p.montant);
+          // console.log("Prix", p.prix);
+          // console.log("Signe", p.signe);
+
+          if (p.signe === "XOF") {
+            return total + (Number(p.montant) / 5000 * Number(p.prix));
+          } else if (p.signe === "EURO") {
+            return total + (Number(p.montant) / 100 * Number(p.prix));
+          } else if (p.signe === "USD") {
+            return total + (Number(p.montant) / 100 * Number(p.prix));
+          } else if (p.signe === "GNF") {
+
+            return total + (Number(p.montant));
+          }
+          // si aucun signe ne correspond, retourner simplement total
+          return total;
+        }, 0);
+
+        // console.log("Sommme total encien Payer", totalPaye);
+
+        totalEncien = (ancienMontant / 100) * encienPrix;
+        nouveauMontants = nouveauMontant;
+        soustraction = totalPaye - totalEncien;
+        montantPayer = nouveauMontants + soustraction;
+
+        montantRestant = Number(sortie.montant_gnf) - montantPayer;
+
+        // console.log("Encien montant", totalEncien);
+        // console.log("Nouveau prix", encienPrix);
+        // console.log("Nouveau montant", nouveauMontant);
+        // console.log("Nouveau prix", nouveauPrix);
+        // console.log("Montant", nouveauMontants);
+        // console.log("soustraction", soustraction);
+        // console.log("Montant Payer", montantPayer);
+        // console.log("Montant Restant ", montantRestant);
+
+        sortie.montant_payer = montantPayer;
+        sortie.montant_restant = montantRestant;
+      }
+
+      else if ((signe === "USD" || signe === "EURO") && ((payement.previous('signe') === "XOF"))) {
+        console.log("Encien XOF Nouveau USD ou EURO");
+        const totalPaye = payements.reduce((total, p) => {
+          // console.log("Montant", p.montant);
+          // console.log("Prix", p.prix);
+          // console.log("Signe", p.signe);
+
+          if (p.signe === "XOF") {
+            return total + (Number(p.montant) / 5000 * Number(p.prix));
+          } else if (p.signe === "EURO") {
+            return total + (Number(p.montant) / 100 * Number(p.prix));
+          } else if (p.signe === "USD") {
+            return total + (Number(p.montant) / 100 * Number(p.prix));
+          } else if (p.signe === "GNF") {
+            return total + (Number(p.montant));
+          }
+          // si aucun signe ne correspond, retourner simplement total
+          return total;
+        }, 0);
+
+        // console.log("Sommme total encien Payer", totalPaye);
+
+        totalEncien = (ancienMontant / 5000) * encienPrix;
+        soustraction = totalPaye - totalEncien;
+
+        nouveauMontants = (nouveauMontant / 100) * nouveauPrix;
+        montantPayer = nouveauMontants + soustraction;
+
+        montantRestant = Number(sortie.montant_gnf) - montantPayer;
+
+        // console.log("Encien  montant", totalEncien);
+        // console.log("Nouveau montant", nouveauMontant);
+        // console.log("Nouveau prix", nouveauPrix);
+        // console.log("soustraction", soustraction);
+        // console.log("Montant Payer", montantPayer);
+        // console.log("Montant Restant ", montantRestant);
+
+        sortie.montant_payer = montantPayer;
+        sortie.montant_restant = montantRestant;
+      }
+      else if ((signe === "GNF") && ((payement.previous('signe') === "XOF"))) {
+        console.log("encien XOF nouveau GNF");
+        const totalPaye = payements.reduce((total, p) => {
+          // console.log("Montant", p.montant);
+          // console.log("Prix", p.prix);
+          // console.log("Signe", p.signe);
+          if (p.signe === "XOF") {
+            return total + (Number(p.montant) / 5000 * Number(p.prix));
+          } else if (p.signe === "EURO") {
+            return total + (Number(p.montant) / 100 * Number(p.prix));
+          } else if (p.signe === "USD") {
+            return total + (Number(p.montant) / 100 * Number(p.prix));
+          }
+          else if (p.signe === "GNF") {
+            return total + (Number(p.montant));
+          }
+          // si aucun signe ne correspond, retourner simplement total
+          return total;
+        }, 0);
+
+        // console.log("Sommme total encien Payer", totalPaye);
+
+        const totalEncien = (ancienMontant / 5000) * encienPrix;
+        const soustraction = totalPaye - totalEncien;
+
+        // console.log({ totalEncien, soustraction });
+
+        nouveauMontants = (nouveauMontant);
+        montantPayer = nouveauMontants + soustraction;
+
+        montantRestant = Number(sortie.montant_gnf) - montantPayer;
+
+        // console.log("Encien  montant", totalEncien);
+        // console.log("Nouveau montant", nouveauMontant);
+        // console.log("Nouveau prix", nouveauPrix);
+        // console.log("soustraction", soustraction);
+        // console.log("Montant Payer", montantPayer);
+        // console.log("Montant Restant ", montantRestant);
+
+        sortie.montant_payer = montantPayer;
+        sortie.montant_restant = montantRestant;
+      }
+      else if (signe === "XOF" && ((payement.previous('signe') === "GNF"))) {
+        console.log("Encien GNF nouveau XOF");
+        const totalPaye = payements.reduce((total, p) => {
+          // console.log("Montant", p.montant);
+          // console.log("Prix", p.prix);
+          // console.log("Signe", p.signe);
+
+          if (p.signe === "XOF") {
+            return total + (Number(p.montant) / 5000 * Number(p.prix));
+          } else if (p.signe === "EURO") {
+            return total + (Number(p.montant) / 100 * Number(p.prix));
+          } else if (p.signe === "USD") {
+            return total + (Number(p.montant) / 100 * Number(p.prix));
+          }
+          else if (p.signe === "GNF") {
+            return total + (Number(p.montant));
+          }
+          return total;
+        }, 0);
+
+        // console.log("Sommme total encien Payer", totalPaye);
+
+        totalEncien = ancienMontant;
+        nouveauMontants = (nouveauMontant / 5000) * nouveauPrix;
+        soustraction = totalPaye - totalEncien;
+        // console.log({ totalEncien, soustraction });
+
+        montantPayer = nouveauMontants + soustraction;
+        montantRestant = Number(sortie.montant_gnf) - montantPayer;
+
+        // console.log("Encien  montant", totalEncien);
+        // console.log("Nouveau montant", nouveauMontant);
+        // console.log("Nouveau prix", nouveauPrix);
+        // console.log("soustraction", soustraction);
+        // console.log("Montant Payer", montantPayer);
+        // console.log("Montant Restant ", montantRestant);
+
+        sortie.montant_payer = montantPayer;
+        sortie.montant_restant = montantRestant;
+      }
+      else if ((signe === "EURO" || signe === "USD") && ((payement.previous('signe') === "GNF"))) {
+        console.log("Encien GNF nouveau EURO OU USD");
+        const totalPaye = payements.reduce((total, p) => {
+          // console.log("Montant", p.montant);
+          // console.log("Prix", p.prix);
+          // console.log("Signe", p.signe);
+
+          if (p.signe === "XOF") {
+            return total + (Number(p.montant) / 5000 * Number(p.prix));
+          } else if (p.signe === "EURO") {
+            return total + (Number(p.montant) / 100 * Number(p.prix));
+          } else if (p.signe === "USD") {
+            return total + (Number(p.montant) / 100 * Number(p.prix));
+          }
+          else if (p.signe === "GNF") {
+            return total + (Number(p.montant));
+          }
+          return total;
+        }, 0);
+
+        console.log("Sommme total encien Payer", totalPaye);
+
+        totalEncien = ancienMontant;
+        nouveauMontants = (nouveauMontant / 100) * nouveauPrix;
+
+        soustraction = totalPaye - totalEncien;
+
+        // console.log({ totalEncien, soustraction });
+
+        montantPayer = nouveauMontants + soustraction;
+
+        montantRestant = Number(sortie.montant_gnf) - montantPayer;
+
+        // console.log("Encien  montant", totalEncien);
+        // console.log("Nouveau montant", nouveauMontant);
+        // console.log("Nouveau prix", nouveauPrix);
+        // console.log("soustraction", soustraction);
+        // console.log("Montant Payer", montantPayer);
+        // console.log("Montant Restant ", montantRestant);
+
+        sortie.montant_payer = montantPayer;
+        sortie.montant_restant = montantRestant;
+      }
+      else if ((signe === "XOF") && ((payement.previous('signe') === "XOF"))) {
+        console.log("Encien XOF nouveau XOF");
+        const totalPaye = payements.reduce((total, p) => {
+          // console.log("Montant", p.montant);
+          // console.log("Prix", p.prix);
+          // console.log("Signe", p.signe);
+
+          if (p.signe === "XOF") {
+            return total + (Number(p.montant) / 5000 * Number(p.prix));
+          } else if (p.signe === "EURO") {
+            return total + (Number(p.montant) / 100 * Number(p.prix));
+          } else if (p.signe === "USD") {
+            return total + (Number(p.montant) / 100 * Number(p.prix));
+          }
+          else if (p.signe === "GNF") {
+            return total + (Number(p.montant));
+          }
+          return total;
+        }, 0);
+
+        // console.log("Sommme total encien Payer", totalPaye);
+
+        totalEncien = (ancienMontant / 5000) * encienPrix;
+        nouveauMontants = (nouveauMontant / 5000) * nouveauPrix;
+
+        soustraction = totalPaye - totalEncien;
+
+        montantPayer = nouveauMontants + soustraction;
+
+        montantRestant = Number(sortie.montant_gnf) - montantPayer;
+
+        // console.log("Encien  montant", totalEncien);
+        // console.log("Nouveau montant", nouveauMontant);
+        // console.log("Nouveau prix", nouveauPrix);
+        // console.log("soustraction", soustraction);
+        // console.log("Montant Payer", montantPayer);
+        // console.log("Montant Restant ", montantRestant);
+
+        sortie.montant_payer = montantPayer;
+        sortie.montant_restant = montantRestant;
+      }
+      else if (signe === "GNF" && payement.previous('signe') === "GNF") {
+        console.log("Encien GNF Nouveau GNF");
+        const totalPaye = payements.reduce((total, p) => {
+          // console.log("Montant", p.montant);
+          // console.log("Prix", p.prix);
+          // console.log("Signe", p.signe);
+
+          if (p.signe === "XOF") {
+            return total + (Number(p.montant) / 5000 * Number(p.prix));
+          } else if (p.signe === "EURO") {
+            return total + (Number(p.montant) / 100 * Number(p.prix));
+          } else if (p.signe === "USD") {
+            return total + (Number(p.montant) / 100 * Number(p.prix));
+          }
+          else if (p.signe === "GNF") {
+            return total + (Number(p.montant));
+          }
+          return total;
+        }, 0);
+
+        // console.log("Sommme total encien Payer", totalPaye);
         totalEncien = ancienMontant;
         nouveauMontants = nouveauMontant;
         soustraction = totalPaye - totalEncien;
         montantPayer = nouveauMontants + soustraction;
         montantRestant = Number(sortie.montant_gnf) - montantPayer;
+
+        // console.log("Encien  montant", totalEncien);
+        // console.log("Nouveau montant", nouveauMontant);
+        // console.log("Nouveau prix", nouveauPrix);
+        // console.log("soustraction", soustraction);
+        // console.log("Montant Payer", montantPayer);
+        // console.log("Montant Restant ", montantRestant);
+
         sortie.montant_payer = montantPayer;
         sortie.montant_restant = montantRestant;
       }
 
-      if (signe === "USD" && payement.signe === "USD" && utilisateur.soldePayerAvecCodeDolar >= ancienMontant) {
+      else if (signe === "XOFSANSPRIX" && payement.previous('signe') === "XOFSANSPRIX") {
+        console.log("Encien XOFSANSPRIX Nouveau XOFSANSPRIX");
+        const totalPaye = payements.reduce((total, p) => {
+          console.log("Montant", p.montant);
+          console.log("Prix", p.prix);
+          console.log("Signe", p.signe);
+
+          if (p.signe === "XOF") {
+            return total + (Number(p.montant) / 5000 * Number(p.prix));
+          } else if (p.signe === "EURO") {
+            return total + (Number(p.montant) / 100 * Number(p.prix));
+          } else if (p.signe === "USD") {
+            return total + (Number(p.montant) / 100 * Number(p.prix));
+          }
+          else if (p.signe === "XOFSANSPRIX") {
+            return total + (Number(p.montant));
+          }
+          return total;
+        }, 0);
+
+        // console.log("Sommme total encien Payer", totalPaye);
+        totalEncien = ancienMontant;
+        nouveauMontants = nouveauMontant;
+        soustraction = totalPaye - totalEncien;
+        montantPayer = nouveauMontants + soustraction;
+        montantRestant = Number(sortie.montant) - montantPayer;
+
+        // console.log("Encien  montant", totalEncien);
+        // console.log("Nouveau montant", nouveauMontant);
+        // console.log("Nouveau prix", nouveauPrix);
+        // console.log("soustraction", soustraction);
+        // console.log("Montant Payer", montantPayer);
+        // console.log("Montant Restant ", montantRestant);
+
+        sortie.montant_payer = montantPayer;
+        sortie.montant_restant = montantRestant;
+      }
+
+
+      if (signe === "XOFSANSPRIX" && payement.previous('signe') === "XOFSANSPRIX" && utilisateur.soldeXOF >= Number(montant)) {
+        // console.log("XOFSANSPRIX->XOFSANSPRIX");
+
+        utilisateur.soldeXOF += Number(ancienMontant);
+        utilisateur.soldeXOF -= Number(montant);
+        payement.montant = Number(montant);
+      } else if (signe === "USD" && payement.previous('signe') === "USD" && utilisateur.soldePayerAvecCodeDolar >= Number(montant)) {
+        // console.log("USD->USD");
+
         utilisateur.soldePayerAvecCodeDolar += Number(ancienMontant);
         utilisateur.soldePayerAvecCodeDolar -= Number(montant);
         payement.montant = Number(montant);
       }
-      else if (signe === "EURO" && payement.signe === "EURO" && utilisateur.soldePayerAvecCodeEuro >= ancienMontant) {
+      else if (signe === "EURO" && payement.previous('signe') === "EURO" && utilisateur.soldePayerAvecCodeEuro >= Number(montant)) {
+        // console.log("EURO->EURO");
+
         utilisateur.soldePayerAvecCodeEuro += ancienMontant;
         utilisateur.soldePayerAvecCodeEuro -= montant;
         payement.montant = Number(montant);
-      } else if (signe === "XOF" && payement.signe === "XOF" && utilisateur.soldePayerAvecCodeXOF >= ancienMontant) {
-        utilisateur.soldePayerAvecCodeXOF += Number(ancienMontant);
-        utilisateur.soldePayerAvecCodeXOF -= Number(montant);
-        payement.montant = Number(montant);
-      } else if (payement.signe === "GNF" && utilisateur.solde >= ancienMontant) {
-        utilisateur.solde += Number(ancienMontant);
-        utilisateur.solde -= Number(montant);
-        payement.montant = Number(montant);
-      } else if (signe === "EURO" && payement.signe === "USD" && utilisateur.soldePayerAvecCodeDolar >= ancienMontant) {
-        utilisateur.soldePayerAvecCodeDolar += Number(ancienMontant);
-        utilisateur.soldePayerAvecCodeEuro -= Number(montant);
-        payement.montant = Number(montant);
-      }
-      else if (signe === "USD" && payement.signe === "EURO" && utilisateur.soldePayerAvecCodeEuro >= ancienMontant) {
-        utilisateur.soldePayerAvecCodeEuro += Number(ancienMontant);
-        utilisateur.soldePayerAvecCodeDolar -= Number(montant);
-        payement.montant = Number(montant);
-      }
-      else if (signe === "XOF" && payement.signe === "EURO" && utilisateur.soldePayerAvecCodeEuro >= ancienMontant) {
-        utilisateur.soldePayerAvecCodeEuro += Number(ancienMontant);
-        utilisateur.soldePayerAvecCodeXOF -= Number(montant);
-        payement.montant = Number(montant);
-      }
-      else if (signe === "EURO" && payement.signe === "XOF" && utilisateur.soldePayerAvecCodeXOF >= ancienMontant) {
-        utilisateur.soldePayerAvecCodeXOF += Number(ancienMontant);
-        utilisateur.soldePayerAvecCodeEuro -= Number(montant);
-        payement.montant = Number(montant);
-      }
-      else if (signe === "XOF" && payement.signe === "USD" && utilisateur.soldePayerAvecCodeDolar >= ancienMontant) {
-        utilisateur.soldePayerAvecCodeDolar += Number(ancienMontant);
-        utilisateur.soldePayerAvecCodeXOF -= Number(montant);
-        payement.montant = Number(montant);
-      }
-      else if (signe === "USD" && payement.signe === "XOF" && utilisateur.soldePayerAvecCodeXOF >= ancienMontant) {
-        utilisateur.soldePayerAvecCodeXOF += Number(ancienMontant);
-        utilisateur.soldePayerAvecCodeDolar -= Number(montant);
-        payement.montant = Number(montant);
-      }
+      } else if (signe === "XOF" && payement.previous('signe') === "XOF" && utilisateur.soldePayerAvecCodeXOF >= Number(montant)) {
+        // console.log("XOF->XOF");
 
-      //GNF et les autres signe
-      else if (payement.signe === "GNF" && signe === "XOF" && utilisateur.solde >= ancienMontant) {
-        utilisateur.solde += Number(ancienMontant);
+        utilisateur.soldePayerAvecCodeXOF += Number(ancienMontant);
         utilisateur.soldePayerAvecCodeXOF -= Number(montant);
         payement.montant = Number(montant);
-      }
-      else if (payement.signe === "GNF" && signe === "USD" && utilisateur.solde >= ancienMontant) {
-        utilisateur.solde += Number(ancienMontant);
-        utilisateur.soldePayerAvecCodeDolar -= Number(montant);
-        payement.montant = Number(montant);
-      }
-      else if (payement.signe === "GNF" && signe === "EURO" && utilisateur.solde >= ancienMontant) {
-        utilisateur.solde += Number(ancienMontant);
-        utilisateur.soldePayerAvecCodeEuro -= Number(montant);
-        payement.montant = Number(montant);
-      }
+      } else if (payement.previous('signe') === "GNF" && signe === "GNF" && utilisateur.solde >= Number(montant)) {
+        // console.log("GNF->GNF");
 
-      //les autres signe a GNF 
-      else if (payement.signe === "XOF" && signe === "GNF" && utilisateur.soldePayerAvecCodeXOF >= ancienMontant) {
-        utilisateur.soldePayerAvecCodeXOF += Number(ancienMontant);
+        utilisateur.solde += Number(ancienMontant);
         utilisateur.solde -= Number(montant);
         payement.montant = Number(montant);
-      }
-      else if (payement.signe === "USD" && signe === "GNF" && utilisateur.soldePayerAvecCodeDolar >= ancienMontant) {
-        utilisateur.soldePayerAvecCodeDolar += Number(ancienMontant);
-        utilisateur.solde -= Number(montant);
-        payement.montant = Number(montant);
-      }
-      else if (payement.signe === "EURO" && signe === "GNF" && utilisateur.soldePayerAvecCodeEuro >= ancienMontant) {
-        utilisateur.soldePayerAvecCodeEuro += Number(ancienMontant);
-        utilisateur.solde -= Number(montant);
-        payement.montant = Number(montant);
-      }
-      else {
-        return res.status(404).json({
-          message: `Le montant dans la caisse est inferieure au montant:${ancienMontant.toLocaleString(
-            "fr-FR",
-            { minimumFractionDigits: 0, maximumFractionDigits: 0 }
-          )}`
-        });
-      }
+      } else
+        if (signe === "EURO" && payement.previous('signe') === "USD" && utilisateur.soldePayerAvecCodeEuro >= Number(montant)) {
+          // console.log("USD->EURO");
 
-      if (montantPayer > sortie.montant_gnf) {
-        return res.status(400).json({
-          message: `Le montant payé est supérieur au montant restant`,
-        });
-      } else {
-        if (sortie.montant_restant === 0) {
-          sortie.status = "PAYEE";
-        } else if (sortie.montant_payer < sortie.montant_gnf) {
-          sortie.status = "EN COURS";
+          utilisateur.soldePayerAvecCodeDolar += Number(ancienMontant);
+          utilisateur.soldePayerAvecCodeEuro -= Number(montant);
+          payement.montant = Number(montant);
         }
-        await sortie.save();
-        await payement.save();
-        await utilisateur.save();
+
+        else if (signe === "USD" && payement.previous('signe') === "EURO" && utilisateur.soldePayerAvecCodeDolar >= Number(montant)) {
+          // console.log("EURO->USD");
+
+          utilisateur.soldePayerAvecCodeEuro += Number(ancienMontant);
+          utilisateur.soldePayerAvecCodeDolar -= Number(montant);
+          payement.montant = Number(montant);
+        }
+        else if (signe === "XOF" && payement.previous('signe') === "EURO" && utilisateur.soldePayerAvecCodeXOF >= Number(montant)) {
+          // console.log("EURO->XOF");
+
+          utilisateur.soldePayerAvecCodeEuro += Number(ancienMontant);
+          utilisateur.soldePayerAvecCodeXOF -= Number(montant);
+          payement.montant = Number(montant);
+        }
+        else if (signe === "EURO" && payement.previous('signe') === "XOF" && utilisateur.soldePayerAvecCodeEuro >= Number(montant)) {
+          utilisateur.soldePayerAvecCodeXOF += Number(ancienMontant);
+          utilisateur.soldePayerAvecCodeEuro -= Number(montant);
+          payement.montant = Number(montant);
+        }
+        else if (signe === "XOF" && payement.previous('signe') === "USD" && utilisateur.soldePayerAvecCodeXOF >= Number(montant)) {
+          // console.log("USD->XOF");
+
+          utilisateur.soldePayerAvecCodeDolar += Number(ancienMontant);
+          utilisateur.soldePayerAvecCodeXOF -= Number(montant);
+          payement.montant = Number(montant);
+        }
+        else if (signe === "USD" && payement.previous('signe') === "XOF" && utilisateur.soldePayerAvecCodeDolar >= Number(montant)) {
+          // console.log("XOF->USD");
+
+          utilisateur.soldePayerAvecCodeXOF += Number(ancienMontant);
+          utilisateur.soldePayerAvecCodeDolar -= Number(montant);
+          payement.montant = Number(montant);
+        }
+
+        //GNF et les autres signe
+        else if (payement.previous('signe') === "GNF" && signe === "XOF" && utilisateur.soldePayerAvecCodeXOF >= Number(montant)) {
+          // console.log("GNF->XOF");
+
+          utilisateur.solde += Number(ancienMontant);
+          utilisateur.soldePayerAvecCodeXOF -= Number(montant);
+          payement.montant = Number(montant);
+        }
+        else if (payement.previous('signe') === "GNF" && signe === "USD" && utilisateur.soldePayerAvecCodeDolar >= Number(montant)) {
+          // console.log("GNF->USD");
+
+          utilisateur.solde += Number(ancienMontant);
+          utilisateur.soldePayerAvecCodeDolar -= Number(montant);
+          payement.montant = Number(montant);
+        }
+        else if (payement.previous('signe') === "GNF" && signe === "EURO" && utilisateur.soldePayerAvecCodeEuro >= Number(montant)) {
+          // console.log("GNF->EURO");
+
+          utilisateur.solde += Number(ancienMontant);
+          utilisateur.soldePayerAvecCodeEuro -= Number(montant);
+          payement.montant = Number(montant);
+        }
+
+        //les autres signe a GNF 
+        else if (payement.previous('signe') === "XOF" && signe === "GNF" && utilisateur.solde >= Number(montant)) {
+          // console.log("XOF->GNF");
+
+          utilisateur.soldePayerAvecCodeXOF += Number(ancienMontant);
+          utilisateur.solde -= Number(montant);
+          payement.montant = Number(montant);
+        }
+        else if (payement.previous('signe') === "USD" && signe === "GNF" && utilisateur.solde >= Number(montant)) {
+          // console.log("USD->GNF");
+
+          utilisateur.soldePayerAvecCodeDolar += Number(ancienMontant);
+          utilisateur.solde -= Number(montant);
+          payement.montant = Number(montant);
+        }
+        else if (payement.previous('signe') === "EURO" && signe === "GNF" && utilisateur.solde >= Number(montant)) {
+          // console.log("EURO->GNF");
+
+          utilisateur.soldePayerAvecCodeEuro += Number(ancienMontant);
+          utilisateur.solde -= Number(montant);
+          payement.montant = Number(montant);
+        }
+        else {
+          return res.status(404).json({
+            message: `Le montant dans la caisse est inferieure au montant:${Number(montant).toLocaleString(
+              "fr-FR",
+              { minimumFractionDigits: 0, maximumFractionDigits: 0 }
+            )}`
+          });
+        }
+      if (signe === "XOFSANSPRIX") {
+        if (montantPayer > sortie.montant) {
+          return res.status(400).json({
+            message: `Le montant payé ${montantPayer} est supérieur au montant restant`,
+          });
+        } else {
+          if (sortie.montant_restant === 0) {
+            sortie.status = "PAYEE";
+          } else if (sortie.montant_payer < sortie.montant_gnf) {
+            sortie.status = "EN COURS";
+          }
+          await sortie.save();
+          await payement.save();
+          await utilisateur.save();
+        }
+      } else {
+        if (montantPayer > sortie.montant_gnf) {
+          return res.status(400).json({
+            message: `Le montant payé ${montantPayer} est supérieur au montant restant`,
+          });
+        } else {
+          if (sortie.montant_restant === 0) {
+            sortie.status = "PAYEE";
+          } else if (sortie.montant_payer < sortie.montant_gnf) {
+            sortie.status = "EN COURS";
+          }
+          await sortie.save();
+          await payement.save();
+          await utilisateur.save();
+        }
       }
     }
 
@@ -337,8 +1183,7 @@ const ajouterPayement = async (req, res) => {
     if (!utilisateur) {
       return res.status(404).json({ message: "Utilisateur introuvable." });
     }
-    // console.log(signe);
-    // console.log(prix);
+
 
     if (type === "ENTREE") {
       const entre = await Entre.findOne({ where: { code } });
@@ -347,6 +1192,16 @@ const ajouterPayement = async (req, res) => {
           .status(404)
           .json({ message: "Entre introuvable avec ce code." });
       }
+      // console.log(entre.previous('prix'));
+      // console.log(prix);
+      if (signe === "XOF") {
+        if (prix !== entre.previous('prix')) {
+          return res
+            .status(404)
+            .json({ message: `le prix saisi: ${prix} est different au prix du code qui est: ${entre.previous('prix')}` });
+        }
+      }
+
       if (prix === 0) {
         const montantEnCoursPayement = montant + entre.montant_payer;
         if (montantEnCoursPayement > entre.montant_gnf) {
@@ -518,6 +1373,14 @@ const ajouterPayement = async (req, res) => {
           .status(404)
           .json({ message: "Sortie introuvable avec ce code." });
       }
+      //console.log(sortie.previous('prix_2'));
+      if (signe === "XOF") {
+        if (prix !== sortie.previous('prix_2')) {
+          return res
+            .status(404)
+            .json({ message: `le prix saisi: ${prix} est different au prix du code qui est: ${sortie.previous('prix_2')}` });
+        }
+      }
 
       if (sortie.etat === "VALIDÉE") {
         if (prix === 0) {
@@ -594,6 +1457,7 @@ const ajouterPayement = async (req, res) => {
                     date_creation,
                     montant,
                     type,
+                    signe: "GNF"
                   });
 
                   // Mettre à jour le solde de l'utilisateur connecté
@@ -660,6 +1524,7 @@ const ajouterPayement = async (req, res) => {
                   date_creation,
                   montant,
                   type,
+                  signe: "XOFSANSPRIX"
                 });
 
 
