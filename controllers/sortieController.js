@@ -454,33 +454,33 @@ const validerSortie = async (req, res) => {
     }
 
     // if (utilisateur.solde > montant_due) {
-      if (sortie.etat === "NON VALIDÉE") {
-        await sortie.update({
-          utilisateurId: utilisateurId || sortie.utilisateurId,
-          partenaireId: partenaireId || sortie.partenaireId,
-          prix_2: prix_2 || sortie.prix_2,
-          montant_gnf: montant_due,
-        });
-        partenaire.montant_preter =
-          (partenaire.montant_preter || 0) + sortie.montant;
-        await partenaire.save();
-        sortie.etat = "VALIDÉE";
-        // console.log(type_payement);
-        if (type_payement === "OM") {
-          sortie.type_payement = "OM";
-        } else {
-          sortie.type_payement = "CASH";
-        }
-        await sortie.save();
-        res.status(200).json({
-          message: "Sortie validée avec succès.",
-          sortie,
-        });
+    if (sortie.etat === "NON VALIDÉE") {
+      await sortie.update({
+        utilisateurId: utilisateurId || sortie.utilisateurId,
+        partenaireId: partenaireId || sortie.partenaireId,
+        prix_2: prix_2 || sortie.prix_2,
+        montant_gnf: montant_due,
+      });
+      partenaire.montant_preter =
+        (partenaire.montant_preter || 0) + sortie.montant;
+      await partenaire.save();
+      sortie.etat = "VALIDÉE";
+      // console.log(type_payement);
+      if (type_payement === "OM") {
+        sortie.type_payement = "OM";
       } else {
-        res.status(400).json({
-          message: "Cette sortie a été déjà validée.",
-        });
+        sortie.type_payement = "CASH";
       }
+      await sortie.save();
+      res.status(200).json({
+        message: "Sortie validée avec succès.",
+        sortie,
+      });
+    } else {
+      res.status(400).json({
+        message: "Cette sortie a été déjà validée.",
+      });
+    }
     // }
     //  else {
     //   const solde = Number(utilisateur.solde);
@@ -521,15 +521,32 @@ const annulerSortie = async (req, res) => {
         .status(400)
         .json({ message: "Cette sortie est déjà annulée." });
 
-    if (sortie.status === "NON PAYEE") {
+    if (sortie.status === "NON PAYEE" && sortie.etat === "NON VALIDÉE") {
       sortie.status = "ANNULEE";
       await sortie.save();
       return res.status(200).json({ message: "Sortie annulée avec succès." });
     }
+    if (sortie.status === "NON PAYEE" && sortie.etat === "VALIDÉE") {
+      sortie.status = "ANNULEE";
+      partenaire.montant_preter =
+        (partenaire.montant_preter || 0) - sortie.montant;
+      await partenaire.save()
+      await sortie.save();
+      return res.status(200).json({ message: "Sortie annulée avec succès." });
+    }
 
-    if (sortie.status === "PAYEE") {
+    if (sortie.status === "EN COURS" && sortie.etat === "VALIDÉE") {
       const montantRestitue =
         sortie.montant_payer > 0 ? sortie.montant_payer : sortie.montant_gnf;
+      utilisateur.solde = (utilisateur.solde || 0) + montantRestitue;
+      partenaire.montant_preter =
+        (partenaire.montant_preter || 0) - sortie.montant;
+
+      await Promise.all([utilisateur.save(), partenaire.save()]);
+    }
+
+    if (sortie.status === "PAYEE" && sortie.etat === "VALIDÉE") {
+      const montantRestitue = sortie.montant_payer;
       utilisateur.solde = (utilisateur.solde || 0) + montantRestitue;
       partenaire.montant_preter =
         (partenaire.montant_preter || 0) - sortie.montant;
