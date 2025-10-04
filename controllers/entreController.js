@@ -4,45 +4,217 @@ const Partenaire = require("../models/partenaires");
 const Devise = require("../models/devises");
 const { Sequelize } = require("sequelize");
 
-// Récupérer les entrées avec les associations
+
+const { Op } = require("sequelize");
+
+// fonction utilitaire pour parser les dates
+function parseDate(dateStr) {
+  if (!dateStr) return null;
+
+  // format ISO (YYYY-MM-DD)
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+    return new Date(dateStr);
+  }
+
+  // format DD/MM/YYYY → conversion
+  if (/^\d{2}\/\d{2}\/\d{4}$/.test(dateStr)) {
+    const [day, month, year] = dateStr.split("/");
+    return new Date(`${year}-${month}-${day}`);
+  }
+
+  return new Date(dateStr);
+}
+
 const recupererEntreesAvecAssocies = async (req, res) => {
   try {
+    let { startDate, endDate } = req.query;
+
+    // Si aucune date fournie → mois courant
+    if (!startDate && !endDate) {
+      const now = new Date();
+      startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+      endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    } else {
+      startDate = parseDate(startDate);
+      endDate = parseDate(endDate);
+
+      // 🔥 on ajuste endDate pour inclure toute la journée
+      if (endDate) {
+        endDate.setHours(23, 59, 59, 999);
+      }
+    }
+
+    console.log("✅ Interval de recherche :", startDate, "→", endDate);
+
+    const whereClause = {
+      date_creation: {
+        [Op.gte]: startDate,
+        [Op.lte]: endDate,
+      },
+    };
+
     const entrees = await Entre.findAll({
+      where: whereClause,
       include: [
-        {
-          model: Utilisateur,
-          attributes: ["id", "nom", "prenom", "email", "solde"], // Champs nécessaires de l'utilisateur
-        },
-        {
-          model: Partenaire,
-          attributes: ["id", "nom", "prenom", "montant_preter"], // Champs nécessaires du partenaire
-        },
-        {
-          model: Devise,
-          attributes: [
-            "id",
-            "paysDepart",
-            "paysArriver",
-            "signe_1",
-            "signe_2",
-            "prix_1",
-            "prix_2",
-          ], // Champs nécessaires de la devise
-        },
+        { model: Utilisateur, attributes: ["id", "nom", "prenom", "email", "solde"] },
+        { model: Partenaire, attributes: ["id", "nom", "prenom", "montant_preter"] },
+        { model: Devise, attributes: ["id", "paysDepart", "paysArriver", "signe_1", "signe_2", "prix_1", "prix_2"] },
       ],
       order: [["date_creation", "DESC"]],
     });
 
     if (entrees.length === 0) {
-      return res.status(404).json({ message: "Aucune entrée trouvée." });
+      return res.status(404).json({ message: "Aucune entrée trouvée pour cette période." });
     }
 
     res.status(200).json(entrees);
   } catch (error) {
-    console.error("Erreur lors de la récupération des entrées :", error);
+    console.error("❌ Erreur lors du filtrage par dates :", error);
     res.status(500).json({ message: "Erreur interne du serveur." });
   }
 };
+
+
+// const { Op } = require("sequelize");
+
+// const recupererEntreesAvecAssocies = async (req, res) => {
+//   try {
+//     let { startDate, endDate } = req.query;
+
+//     // Si aucune date n’est fournie → on prend le mois courant
+//     if (!startDate && !endDate) {
+//       const now = new Date();
+//       startDate = new Date(now.getFullYear(), now.getMonth(), 1); // 1er jour du mois
+//       endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0); // dernier jour du mois
+//     }
+
+//     const whereClause = {
+//       date_creation: {
+//         [Op.gte]: new Date(startDate),
+//         [Op.lte]: new Date(endDate),
+//       },
+//     };
+
+//     const entrees = await Entre.findAll({
+//       where: whereClause,
+//       include: [
+//         { model: Utilisateur, attributes: ["id", "nom", "prenom", "email", "solde"] },
+//         { model: Partenaire, attributes: ["id", "nom", "prenom", "montant_preter"] },
+//         { model: Devise, attributes: ["id", "paysDepart", "paysArriver", "signe_1", "signe_2", "prix_1", "prix_2"] },
+//       ],
+//       order: [["date_creation", "DESC"]],
+//     });
+
+//     console.log(entrees);
+
+//     if (entrees.length === 0) {
+//       return res.status(404).json({ message: "Aucune entrée trouvée pour cette période." });
+//     }
+
+//     res.status(200).json(entrees);
+//   } catch (error) {
+//     console.error("Erreur lors du filtrage par dates :", error);
+//     res.status(500).json({ message: "Erreur interne du serveur." });
+//   }
+// };
+
+
+// const { Op } = require("sequelize");
+
+// const recupererEntreesAvecAssocies = async (req, res) => {
+//   try {
+//     // Obtenir le premier jour du mois en cours
+//     const debutMois = new Date();
+//     debutMois.setDate(1);
+//     debutMois.setHours(0, 0, 0, 0);
+
+//     // Obtenir le premier jour du mois suivant
+//     const finMois = new Date(debutMois);
+//     finMois.setMonth(finMois.getMonth() + 1);
+
+//     const entrees = await Entre.findAll({
+//       where: {
+//         date_creation: {
+//           [Op.gte]: debutMois,
+//           [Op.lt]: finMois,
+//         },
+//       },
+//       include: [
+//         {
+//           model: Utilisateur,
+//           attributes: ["id", "nom", "prenom", "email", "solde"],
+//         },
+//         {
+//           model: Partenaire,
+//           attributes: ["id", "nom", "prenom", "montant_preter"],
+//         },
+//         {
+//           model: Devise,
+//           attributes: [
+//             "id",
+//             "paysDepart",
+//             "paysArriver",
+//             "signe_1",
+//             "signe_2",
+//             "prix_1",
+//             "prix_2",
+//           ],
+//         },
+//       ],
+//       order: [["date_creation", "DESC"]],
+//     });
+
+//     if (entrees.length === 0) {
+//       return res.status(404).json({ message: "Aucune entrée trouvée pour ce mois." });
+//     }
+
+//     res.status(200).json(entrees);
+//   } catch (error) {
+//     console.error("Erreur lors de la récupération des entrées :", error);
+//     res.status(500).json({ message: "Erreur interne du serveur." });
+//   }
+// };
+
+
+// Récupérer les entrées avec les associations
+// const recupererEntreesAvecAssocies = async (req, res) => {
+//   try {
+//     const entrees = await Entre.findAll({
+//       include: [
+//         {
+//           model: Utilisateur,
+//           attributes: ["id", "nom", "prenom", "email", "solde"], // Champs nécessaires de l'utilisateur
+//         },
+//         {
+//           model: Partenaire,
+//           attributes: ["id", "nom", "prenom", "montant_preter"], // Champs nécessaires du partenaire
+//         },
+//         {
+//           model: Devise,
+//           attributes: [
+//             "id",
+//             "paysDepart",
+//             "paysArriver",
+//             "signe_1",
+//             "signe_2",
+//             "prix_1",
+//             "prix_2",
+//           ], // Champs nécessaires de la devise
+//         },
+//       ],
+//       order: [["date_creation", "DESC"]],
+//     });
+
+//     if (entrees.length === 0) {
+//       return res.status(404).json({ message: "Aucune entrée trouvée." });
+//     }
+
+//     res.status(200).json(entrees);
+//   } catch (error) {
+//     console.error("Erreur lors de la récupération des entrées :", error);
+//     res.status(500).json({ message: "Erreur interne du serveur." });
+//   }
+// };
 
 // Ajouter une entrée
 const ajouterEntre = async (req, res) => {
