@@ -4,9 +4,57 @@ const Partenaire = require("../models/partenaires");
 const Devise = require("../models/devises");
 const { Sequelize } = require("sequelize");
 
+
+const { Op } = require("sequelize");
+
+// fonction utilitaire pour parser les dates
+function parseDate(dateStr) {
+  if (!dateStr) return null;
+
+  // format ISO (YYYY-MM-DD)
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+    return new Date(dateStr);
+  }
+
+  // format DD/MM/YYYY → conversion
+  if (/^\d{2}\/\d{2}\/\d{4}$/.test(dateStr)) {
+    const [day, month, year] = dateStr.split("/");
+    return new Date(`${year}-${month}-${day}`);
+  }
+
+  return new Date(dateStr);
+}
+
 const recupererSortiesAvecAssocies = async (req, res) => {
   try {
+    let { startDate, endDate } = req.query;
+
+    // Si aucune date fournie → mois courant
+    if (!startDate && !endDate) {
+      const now = new Date();
+      startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+      endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    } else {
+      startDate = parseDate(startDate);
+      endDate = parseDate(endDate);
+
+      // 🔥 on ajuste endDate pour inclure toute la journée
+      if (endDate) {
+        endDate.setHours(23, 59, 59, 999);
+      }
+    }
+
+    console.log("✅ Interval de recherche :", startDate, "→", endDate);
+
+    const whereClause = {
+      date_creation: {
+        [Op.gte]: startDate,
+        [Op.lte]: endDate,
+      },
+    };
+
     const sorties = await Sortie.findAll({
+      where: whereClause,
       include: [
         {
           model: Utilisateur,
@@ -29,18 +77,64 @@ const recupererSortiesAvecAssocies = async (req, res) => {
           ], // Champs nécessaires
         },
       ],
+      // include: [
+      //   { model: Utilisateur, attributes: ["id", "nom", "prenom", "email", "solde"] },
+      //   { model: Partenaire, attributes: ["id", "nom", "prenom", "montant_preter"] },
+      //   { model: Devise, attributes: ["id", "paysDepart", "paysArriver", "signe_1", "signe_2", "prix_1", "prix_2"] },
+      // ],
+      order: [["date_creation", "DESC"]],
     });
 
     if (sorties.length === 0) {
-      return res.status(404).json({ message: "Aucune sortie trouvée." });
+      return res.status(404).json({ message: "Aucune sortie trouvée pour cette période." });
     }
 
     res.status(200).json(sorties);
   } catch (error) {
-    console.error("Erreur lors de la récupération des sorties :", error);
+    console.error("❌ Erreur lors du filtrage par dates :", error);
     res.status(500).json({ message: "Erreur interne du serveur." });
   }
 };
+
+
+
+// const recupererSortiesAvecAssocies = async (req, res) => {
+//   try {
+//     const sorties = await Sortie.findAll({
+//       include: [
+//         {
+//           model: Utilisateur,
+//           attributes: ["id", "nom", "prenom", "email"], // Champs nécessaires
+//         },
+//         {
+//           model: Partenaire,
+//           attributes: ["id", "nom", "prenom", "montant_preter"], // Champs nécessaires
+//         },
+//         {
+//           model: Devise,
+//           attributes: [
+//             "id",
+//             "paysDepart",
+//             "paysArriver",
+//             "signe_1",
+//             "signe_2",
+//             "prix_1",
+//             "prix_2",
+//           ], // Champs nécessaires
+//         },
+//       ],
+//     });
+
+//     if (sorties.length === 0) {
+//       return res.status(404).json({ message: "Aucune sortie trouvée." });
+//     }
+
+//     res.status(200).json(sorties);
+//   } catch (error) {
+//     console.error("Erreur lors de la récupération des sorties :", error);
+//     res.status(500).json({ message: "Erreur interne du serveur." });
+//   }
+// };
 
 // Compter le nombre d'entrées du jour actuel
 const compterSortieDuJour = async (req, res) => {
