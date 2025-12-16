@@ -19,5 +19,8 @@ router.get('/infoUser', utilisateurController.getUserInfo);
 
 router.put('/utilisateurs/:id', utilisateurController.modifier);
 
+router.put("/utilisateur/reset-password/:id", utilisateurController.resetPassword);
+
+
 
 module.exports = router;

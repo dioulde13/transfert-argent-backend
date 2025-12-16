@@ -25,6 +25,9 @@ function parseDate(dateStr) {
   return new Date(dateStr);
 }
 
+
+
+
 const recupererSortiesAvecAssocies = async (req, res) => {
   try {
     let { startDate, endDate } = req.query;

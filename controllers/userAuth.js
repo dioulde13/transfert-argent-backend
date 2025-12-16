@@ -6,13 +6,84 @@ const { ValidationError } = require("sequelize");
 // Clé secrète JWT
 const JWT_SECRET = "votre_clé_secrète_pour_jwt";
 
+
+
+// Connexion de l'utilisateur
+const login = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    // Validation des champs
+    if (!email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: "Email et mot de passe requis.",
+      });
+    }
+
+    // Rechercher l'utilisateur dans la base de données
+    const utilisateur = await Utilisateur.findOne({
+      where: { email },
+    });
+
+    if (!utilisateur) {
+      return res.status(404).json({
+        success: false,
+        message: "Utilisateur non trouvé.",
+      });
+    }
+
+    // Vérifier le mot de passe
+    const isPasswordValid = await bcrypt.compare(
+      password,
+      utilisateur.password
+    );
+    if (!isPasswordValid) {
+      return res.status(401).json({
+        success: false,
+        message: "Mot de passe incorrect.",
+      });
+    }
+
+    // Générer un token JWT
+    const token = jwt.sign(
+      { id: utilisateur.id, email: utilisateur.email, role: utilisateur.role },
+      JWT_SECRET,
+      { expiresIn: "24h" }
+    );
+
+    // Retourner le token et les informations de l'utilisateur
+    res.json({
+      success: true,
+      message: "Connexion réussie.",
+      token,
+      user: {
+        id: utilisateur.id,
+        nom: utilisateur.nom,
+        prenom: utilisateur.prenom,
+        email: utilisateur.email,
+        telephone: utilisateur.telephone,
+        solde: utilisateur.solde,
+        role: utilisateur.role,
+        btEnabled: utilisateur.btEnabled,
+      },
+    });
+  } catch (err) {
+    res.status(500).json({
+      success: false,
+      message: "Erreur lors de la connexion.",
+      error: err.message,
+    });
+  }
+};
+
 // Récupérer les informations de l'utilisateur connecté
 const getUserInfo = async (req, res) => {
   try {
     // Récupérer le token depuis l'en-tête Authorization
     const authHeader = req.headers.authorization;
 
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    if (!authHeader || !authHeader.startsWith("Bearer")) {
       return res.status(401).json({
         success: false,
         message: "Token manquant ou invalide.",
@@ -147,9 +218,6 @@ const ajouterUtilisateur = async (req, res) => {
       prenom,
       telephone,
       email,
-      // sign,
-      // sign_dollar,
-      // sign_euro,
       password,
     } = req.body;
 
@@ -219,24 +287,22 @@ const getAllUser = async (req, res) => {
   }
 };
 
-// Connexion de l'utilisateur
-const login = async (req, res) => {
-  try {
-    const { email, password } = req.body;
 
-    // Validation des champs
-    if (!email || !password) {
+const resetPassword = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { newPassword } = req.body;
+
+    // Validation
+    if (!newPassword) {
       return res.status(400).json({
         success: false,
-        message: "Email et mot de passe requis.",
+        message: "Le nouveau mot de passe est requis.",
       });
     }
 
-    // Rechercher l'utilisateur dans la base de données
-    const utilisateur = await Utilisateur.findOne({
-      where: { email },
-    });
-
+    // Rechercher l'utilisateur
+    const utilisateur = await Utilisateur.findByPk(id);
     if (!utilisateur) {
       return res.status(404).json({
         success: false,
@@ -244,51 +310,33 @@ const login = async (req, res) => {
       });
     }
 
-    // Vérifier le mot de passe
-    const isPasswordValid = await bcrypt.compare(
-      password,
-      utilisateur.password
-    );
-    if (!isPasswordValid) {
-      return res.status(401).json({
-        success: false,
-        message: "Mot de passe incorrect.",
-      });
-    }
+    // Hasher le nouveau mot de passe
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
 
-    // Générer un token JWT
-    const token = jwt.sign(
-      { id: utilisateur.id, email: utilisateur.email, role: utilisateur.role },
-      JWT_SECRET,
-      { expiresIn: "24h" }
-    );
-
-    // Retourner le token et les informations de l'utilisateur
-    res.json({
-      success: true,
-      message: "Connexion réussie.",
-      token,
-      user: {
-        id: utilisateur.id,
-        nom: utilisateur.nom,
-        prenom: utilisateur.prenom,
-        email: utilisateur.email,
-        telephone: utilisateur.telephone,
-        solde: utilisateur.solde,
-        role: utilisateur.role,
-        btEnabled: utilisateur.btEnabled,
-      },
+    // Mise à jour du mot de passe
+    await utilisateur.update({
+      password: hashedPassword,
     });
-  } catch (err) {
-    res.status(500).json({
+
+    return res.status(200).json({
+      success: true,
+      message: "Mot de passe réinitialisé avec succès.",
+    });
+  } catch (error) {
+    console.error("Erreur reset password :", error);
+    return res.status(500).json({
       success: false,
-      message: "Erreur lors de la connexion.",
-      error: err.message,
+      message: "Erreur lors de la réinitialisation du mot de passe.",
+      error: error.message,
     });
   }
 };
 
+
+
+
 module.exports = {
+  resetPassword,
   ajouterUtilisateur,
   login,
   getAllUser,
