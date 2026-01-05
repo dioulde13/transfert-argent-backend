@@ -45,6 +45,11 @@ const Credit = sequelize.define('Credit', {
     allowNull: false,
     defaultValue: "SORTIE", 
   },
+  devise: {
+     type: DataTypes.ENUM("GNF", "XOF", "EURO", "USD"),
+    allowNull: false,
+    defaultValue: "GNF", 
+  },
   status: {
     type: DataTypes.ENUM("CASH", "IV"),
     allowNull: false,

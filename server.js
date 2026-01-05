@@ -46,6 +46,8 @@ app.use(
   })
 );
 
+
+
 // ✅ Exemple avec MySQL pour remplacer l'ancienne insertion
 app.post("/api/insertProduit", async (req, res) => {
   try {
@@ -101,7 +103,7 @@ app.use("/api/exchange", exchangeRoute);
 
 // Sequelize sync
 sequelize
-  .sync({ alter: true }) // Remettre  force: true si besoin
+  .sync({ force: true }) // Remettre  force: true si besoin
   .then(() => console.log("Tables créées avec succès"))
   .catch((error) => console.error("Erreur création tables :", error));
 

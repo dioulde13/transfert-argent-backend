@@ -3,16 +3,36 @@ const Utilisateur = require("../models/utilisateurs");
 
 const ajouterCredit = async (req, res) => {
   try {
-    const { utilisateurId, type, nom, montant, date_creation, status } = req.body;
+    const {
+      utilisateurId,
+      type,
+      nom,
+      montant,
+      date_creation,
+      status,
+      devise,
+    } = req.body;
 
     // Vérification des champs requis
-    if (!utilisateurId || !nom || !type || !montant || !date_creation || !status) {
-      return res.status(400).json({ message: "Tous les champs sont obligatoires." });
+    if (
+      !utilisateurId ||
+      !nom ||
+      !type ||
+      !montant ||
+      !date_creation ||
+      !status ||
+      !devise
+    ) {
+      return res
+        .status(400)
+        .json({ message: "Tous les champs sont obligatoires." });
     }
 
     // Vérification que montant est un nombre positif
     if (isNaN(montant) || montant <= 0) {
-      return res.status(400).json({ message: "Le montant doit être un nombre positif." });
+      return res
+        .status(400)
+        .json({ message: "Le montant doit être un nombre positif." });
     }
 
     const utilisateur = await Utilisateur.findByPk(utilisateurId);
@@ -20,105 +40,143 @@ const ajouterCredit = async (req, res) => {
       return res.status(404).json({ message: "Utilisateur introuvable." });
     }
 
-    // Génération du code unique
+    // Génération de la référence unique
     const generateUniqueCode = async () => {
-      // Valeur initiale par défaut
       let newCode = "REF0001";
 
-      // Récupérer la dernière entrée triée par date de création
       const lastEntry = await Credit.findOne({
         order: [["createdAt", "DESC"]],
       });
 
-      if (lastEntry && lastEntry.reference && lastEntry.reference.startsWith("REF")) {
+      if (lastEntry?.reference?.startsWith("REF")) {
         const numericPart = parseInt(lastEntry.reference.slice(3), 10);
-
         if (!isNaN(numericPart)) {
-          const incrementedPart = (numericPart + 1).toString().padStart(4, "0");
-          newCode = `REF${incrementedPart}`;
+          newCode = `REF${(numericPart + 1)
+            .toString()
+            .padStart(4, "0")}`;
         }
       }
 
       return newCode;
     };
 
+    const reference = await generateUniqueCode();
 
-    const newCode = await generateUniqueCode();
     let credit;
 
+    // Traitement pour les sorties
     if (type === "SORTIE") {
+      // Cas sortie avec status IV (Point de vente)
       if (status === "IV") {
         if (utilisateur.soldePDV < montant) {
           return res.status(400).json({ message: "Solde insuffisant." });
-        } else {
-          credit = await Credit.create({
-            utilisateurId,
-            nom,
-            type,
-            date_creation,
-            reference: newCode,
-            montant,
-            status
-          });
-          utilisateur.soldePDV -= montant;
-          utilisateur.solde -= montant;
         }
+        credit = await Credit.create({
+          utilisateurId,
+          nom,
+          type,
+          date_creation,
+          reference,
+          montant,
+          status,
+          devise,
+        });
+
+        utilisateur.soldePDV -= montant;
+        utilisateur.solde -= montant;
       } else {
+        // Sortie normale
         if (utilisateur.solde < montant) {
           return res.status(400).json({ message: "Solde insuffisant." });
-        } else {
-          credit = await Credit.create({
-            utilisateurId,
-            nom,
-            type,
-            date_creation,
-            reference: newCode,
-            montant,
-            status
-          });
+        }
+
+        credit = await Credit.create({
+          utilisateurId,
+          nom,
+          type,
+          date_creation,
+          reference,
+          montant,
+          status,
+          devise,
+        });
+
+        if (devise === "GNF") {
           utilisateur.solde -= montant;
+        } else if (devise === "XOF") {
+          if (utilisateur.soldePayerAvecCodeXOF < montant) {
+            return res.status(400).json({ message: "Solde insuffisant." });
+          }
+          utilisateur.soldePayerAvecCodeXOF -= montant;
+        } else if (devise === "EURO") {
+          if (utilisateur.soldePayerAvecCodeEuro < montant) {
+            return res.status(400).json({ message: "Solde insuffisant." });
+          }
+          utilisateur.soldePayerAvecCodeEuro -= montant;
+        } else if (devise === "USD") {
+          if (utilisateur.soldePayerAvecCodeDolar < montant) {
+            return res.status(400).json({ message: "Solde insuffisant." });
+          }
+          utilisateur.soldePayerAvecCodeDolar -= montant;
         }
       }
-    } else if (type === "ENTRE") {
+    }
+    // Traitement pour les entrées
+    else if (type === "ENTRE") {
       credit = await Credit.create({
         utilisateurId,
         nom,
         type,
         date_creation,
-        reference: newCode,
+        reference,
         montant,
-        status
+        status,
+        devise,
       });
+
       if (status === "IV") {
         utilisateur.soldePDV += montant;
+      } else {
+        if (devise === "GNF") {
+          utilisateur.solde += montant;
+        } else if (devise === "XOF") {
+          utilisateur.soldePayerAvecCodeXOF += montant;
+        } else if (devise === "EURO") {
+          utilisateur.soldePayerAvecCodeEuro += montant;
+        } else if (devise === "USD") {
+          utilisateur.soldePayerAvecCodeDolar += montant;
+        }
       }
-      utilisateur.solde += montant;
     } else {
       return res.status(400).json({ message: "Type de crédit invalide." });
     }
+
     await utilisateur.save();
+
     return res.status(201).json({
       message: "Crédit ajouté avec succès.",
       credit,
     });
-
   } catch (error) {
     console.error("Erreur lors de l'ajout du crédit :", error);
     return res.status(500).json({ message: "Erreur interne du serveur." });
   }
 };
 
+
 const annulerCredit = async (req, res) => {
   try {
     const { reference } = req.body;
 
     const credit = await Credit.findOne({ where: { reference } });
-    if (!credit) return res.status(404).json({ message: "crédit introuvable." });
+    if (!credit)
+      return res.status(404).json({ message: "crédit introuvable." });
 
     const [utilisateur] = await Promise.all([
       Utilisateur.findByPk(credit.utilisateurId),
     ]);
-    if (!utilisateur) return res.status(404).json({ message: "Utilisateur introuvable." });
+    if (!utilisateur)
+      return res.status(404).json({ message: "Utilisateur introuvable." });
 
     if (credit.type === "SORTIE") {
       if (utilisateur.solde >= credit.montant) {
@@ -160,7 +218,6 @@ const annulerCredit = async (req, res) => {
   }
 };
 
-
 const recupererCredit = async (req, res) => {
   try {
     // Récupérer tous les partenaires avec les informations de l'utilisateur associé
@@ -185,6 +242,5 @@ const recupererCredit = async (req, res) => {
     res.status(500).json({ message: "Erreur interne du serveur." });
   }
 };
-
 
 module.exports = { ajouterCredit, recupererCredit, annulerCredit };
